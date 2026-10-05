@@ -1,0 +1,1 @@
+CREATE INDEX "receipt_share_receipt_idx" ON "stg_private"."receipt_shares" USING btree ("receipt_id");

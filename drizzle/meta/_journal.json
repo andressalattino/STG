@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790883392598,
+      "tag": "0000_flawless_prima",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790883392599,
+      "tag": "0001_receipt_security",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790883392600,
+      "tag": "0002_supabase_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790909085733,
+      "tag": "0003_receipt_share_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790971521558,
+      "tag": "0004_eager_karma",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "name": "stg-viajes",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3010",
+    "build": "next build",
+    "start": "next start --port 3010",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "db:numbering": "tsx scripts/set-numbering.ts",
+    "test:ui": "node tests/ui.cjs",
+    "test:auth": "node tests/auth-recovery.cjs",
+    "test:navigation": "node tests/admin-navigation.cjs",
+    "test:finance": "node tests/finance-ui.cjs",
+    "db:check:finance": "tsx scripts/check-finance.ts",
+    "db:check": "tsx scripts/check-db.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.4",
+    "decimal.js": "10.6.0",
+    "drizzle-orm": "0.45.3",
+    "lucide-react": "^0.468.0",
+    "next": "16.3.8",
+    "pdf-lib": "1.17.1",
+    "postgres": "3.4.9",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@electric-sql/pglite": "0.5.8",
+    "@types/node": "^22.10.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "autoprefixer": "^10.4.20",
+    "dotenv": "18.0.5",
+    "drizzle-kit": "0.31.11",
+    "playwright": "^1.63.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "tsx": "4.23.15",
+    "typescript": "^5.7.2"
+  }
+}
