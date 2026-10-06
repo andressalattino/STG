@@ -21,6 +21,7 @@ import { initialPassengerPhotos, initialTrips } from "./data/site";
 import { useAdminSession } from "./features/auth/useAdminSession";
 import { ExpensesWorkspace } from "./features/finance/ExpensesWorkspace";
 import { StatisticsDashboard } from "./features/finance/StatisticsDashboard";
+import { QuotationsWorkspace } from "./features/quotations/QuotationsWorkspace";
 import { ReceiptWorkspace } from "./features/receipts/ReceiptWorkspace";
 import { documentUrl, storeLocalFile } from "./lib/local-files";
 import {
@@ -629,6 +630,9 @@ function App() {
         )}
         {isAdmin && pathname === "/admin/egresos" && (
           <ExpensesWorkspace onLogout={() => void logout()} />
+        )}
+        {isAdmin && pathname === "/admin/cotizaciones" && (
+          <QuotationsWorkspace onLogout={() => void logout()} />
         )}
         {isAdmin && pathname === "/admin/estadisticas" && (
           <StatisticsDashboard onLogout={() => void logout()} />

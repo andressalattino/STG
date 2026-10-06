@@ -6,6 +6,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgSchema,
   pgTable,
@@ -13,6 +14,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { QuotationData } from "@/features/quotations/domain";
 
 const timestamps = () => ({
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -58,6 +60,44 @@ export const privateSchema = pgSchema("stg_private");
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType: () => "bytea",
 });
+export const quotationCounter = privateSchema
+  .table("quotation_counter", {
+    id: integer("id").primaryKey(),
+    nextNumber: integer("next_number").notNull(),
+  })
+  .enableRLS();
+export const quotations = privateSchema
+  .table(
+    "quotations",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      number: integer("number").unique().notNull(),
+      requestId: uuid("request_id").unique().notNull(),
+      fingerprint: text("fingerprint").notNull(),
+      createdBy: uuid("created_by").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+      expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+      passenger: text("passenger").notNull(),
+      destination: text("destination").notNull(),
+      data: jsonb("data").$type<QuotationData>().notNull(),
+      templateVersion: text("template_version").notNull().default("v1"),
+    },
+    (t) => [
+      check("quotation_number_positive", sql`${t.number} between 1 and 999999`),
+    ],
+  )
+  .enableRLS();
+export const quotationDocuments = privateSchema
+  .table("quotation_documents", {
+    quotationId: uuid("quotation_id")
+      .primaryKey()
+      .references(() => quotations.id),
+    content: bytea("content").notNull(),
+    sha256: text("sha256").notNull(),
+  })
+  .enableRLS();
 export const receiptCounter = privateSchema.table("receipt_counter", {
   id: integer("id").primaryKey(),
   nextNumber: integer("next_number").notNull(),

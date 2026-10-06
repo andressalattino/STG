@@ -36,6 +36,13 @@
       "when": 1790971521558,
       "tag": "0004_eager_karma",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791296410358,
+      "tag": "0005_mute_sunfire",
+      "breakpoints": true
     }
   ]
 }

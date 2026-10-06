@@ -19,6 +19,8 @@
     "test:auth": "node tests/auth-recovery.cjs",
     "test:navigation": "node tests/admin-navigation.cjs",
     "test:finance": "node tests/finance-ui.cjs",
+    "test:quotations": "node tests/quotations-ui.cjs",
+    "pdf:quotation": "tsx scripts/sample-quotation.ts",
     "db:check:finance": "tsx scripts/check-finance.ts",
     "db:check": "tsx scripts/check-db.ts"
   },

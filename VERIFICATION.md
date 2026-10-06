@@ -1,4 +1,15 @@
-# Verificación del cambio — 2 de octubre de 2026
+# Verificación del cambio — 6 de octubre de 2026
+
+## Cotizaciones
+
+- Migración `0005_mute_sunfire` aplicada con Drizzle al proyecto autorizado. Tres tablas privadas con RLS y sin SELECT de anon/authenticated. Contador independiente en 1, cero cotizaciones de prueba en producción.
+- Ocho pruebas de dominio/servicio pasaron, incluidas cotizaciones: validaciones condicionales, moneda, fechas, inversión del itinerario, validez, numeración, reintentos, conflicto por datos distintos, rollback ante error de PDF, integridad SHA-256 y exclusión de ingresos estadísticos.
+- `test:quotations` pasó con Auth/API simuladas: consulta de dólar, noches automáticas, varias opciones, regreso invertido, vista previa sin guardar, respuesta perdida y reintento con el mismo UUID, descarga, historial, reutilización, sin hospedaje, solo ida, ARS a 1 y móvil sin desbordamiento horizontal.
+- `test:navigation` pasó nuevamente. Los cuatro métodos/endpoints de cotizaciones rechazan peticiones anónimas con 401 y `Cache-Control: no-store`. `lint`, TypeScript y build de producción pasaron.
+- PDF de ejemplo revisado visualmente en A4: una página para el modelo y continuación numerada para texto extenso. No se emitió un comprobante real para las pruebas. El logo se incluye explícitamente en el rastreo de archivos de Next para las funciones de Vercel.
+- Advisor de seguridad: sin nuevos avisos WARN por las tablas. RLS sin políticas es intencional en tablas atendidas solo por el servidor. Persiste el aviso previo de protección de contraseñas filtradas: [documentación](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+
+Las verificaciones históricas que siguen describen el estado al momento de cada etapa; la web original fue publicada posteriormente por el usuario en `https://stg-turismo.vercel.app`.
 
 ## Comprobado
 

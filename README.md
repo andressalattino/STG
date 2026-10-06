@@ -41,6 +41,18 @@ Cada PDF utiliza el modelo suministrado, con dos copias en una página A4. **Abr
 
 Los PDF emitidos se guardan completos junto con el recibo en la misma transacción de PostgreSQL, dentro del esquema privado `stg_private`. No se publican en Storage ni se regeneran al descargarlos. La numeración se bloquea durante cada emisión; repetir el mismo envío recupera el recibo existente. Ante una respuesta de red incierta, usar el botón de reintento del mismo formulario sin recargar la página.
 
+## Cotizaciones de viaje
+
+Desde **Administración → Cotizaciones** (`/admin/cotizaciones`) se preparan propuestas en ARS o USD, con precio total para todos los pasajeros, cotización editable, fechas, destino y validez en horas (72 por defecto). ARS utiliza cotización 1; el dólar oficial se puede consultar como referencia. Las fechas calculan las noches y se permite ajustarlas.
+
+El transporte clásico permite un tramo de ida. El mixto permite hasta seis tramos (aéreo, bus, tren o crucero); **Ida y vuelta** agrega el itinerario inverso, en orden inverso. Se admiten hasta ocho alternativas de hospedaje: cada precio es el total del paquete con esa opción, no un adicional ni una suma de hoteles. También se puede indicar sin hospedaje, pensión, cantidades totales de equipaje, asistencia, traslados, excursiones y aclaraciones.
+
+**Vista previa A4** genera un borrador sin guardar ni consumir números. **Guardar cotización y PDF** crea una cotización numerada desde 000001, independiente de recibos y estadísticas. Datos y PDF se guardan de forma atómica en el esquema privado; reintentar una respuesta incierta usa el mismo identificador. Los documentos emitidos no se sobrescriben. En el historial se puede buscar, abrir/imprimir, descargar o **Usar como base** para una nueva propuesta. El PDF puede adjuntarse por WhatsApp/correo y, en dispositivos compatibles, compartirse desde el menú nativo.
+
+El PDF sigue el estilo del modelo con logo, amarillo y azul, resumen, transporte, hospedaje y servicios. El ejemplo habitual ocupa una hoja A4; el contenido extenso continúa en hojas A4 numeradas, sin recortes. Los emojis o símbolos no imprimibles se rechazan sin guardar un documento parcial.
+
+Aplicar `npm run db:migrate` antes de publicar esta versión. `npm run test:quotations` prueba el formulario con API simulada; `npm run pdf:quotation` genera ejemplos en `.artifacts`, sin registrar cotizaciones reales.
+
 ## Organización
 
 | Carpeta | Responsabilidad |
