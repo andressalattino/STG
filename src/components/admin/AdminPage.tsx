@@ -273,6 +273,10 @@ export function AdminPage({
                     />
                   </label>
                   <p className="mt-3 text-xs leading-5 text-muted">
+                    Formato recomendado: 1080 × 1350 px, vertical (4:5), JPG o
+                    WebP. Idealmente menos de 300 KB.
+                  </p>
+                  <p className="mt-3 text-xs leading-5 text-muted">
                     {imageUploadStatus ||
                       (hasSupabaseAdminSession
                         ? "JPG, PNG, WebP, GIF o AVIF. Maximo 8 MB."
@@ -372,7 +376,7 @@ export function AdminPage({
                   <MediaImage
                     src={trip.imageUrl || "/logo-stg.png"}
                     alt={trip.title}
-                    className="h-28 w-full rounded-md object-cover sm:w-32"
+                    className="h-28 w-full rounded-md bg-subtle object-contain sm:w-32"
                   />
                   <div>
                     <div className="flex flex-wrap items-center gap-2">

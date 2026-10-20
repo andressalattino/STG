@@ -33,6 +33,7 @@ export function Header({
           <MediaImage
             src="/logo-stg.png"
             alt="STG Viajes y Turismo"
+            loading="eager"
             className="h-12 w-auto sm:h-14"
           />
           <span className="hidden text-left text-xs font-black uppercase tracking-[0.18em] text-stg-blue sm:block">

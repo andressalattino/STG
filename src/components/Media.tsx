@@ -1,6 +1,34 @@
-import { FileText } from "lucide-react";
-import { type ImgHTMLAttributes, useEffect, useState } from "react";
+import { FileText, ImageOff, LoaderCircle } from "lucide-react";
+import Image from "next/image";
+import { type ImgHTMLAttributes, useEffect, useRef, useState } from "react";
+import { canOptimizeImage, imageSource } from "../lib/image-sources";
 import { documentUrl, isLocalFile, readLocalFile } from "../lib/local-files";
+
+const localAssets = new Map<string, { url: Promise<string>; users: number }>();
+
+function acquireLocalAsset(reference: string) {
+  let asset = localAssets.get(reference);
+  if (!asset) {
+    asset = {
+      url: readLocalFile(reference).then((file) => URL.createObjectURL(file)),
+      users: 0,
+    };
+    localAssets.set(reference, asset);
+  }
+  const entry = asset;
+  entry.users++;
+  return {
+    url: entry.url,
+    release() {
+      if (--entry.users > 0) return;
+      if (localAssets.get(reference) === entry) localAssets.delete(reference);
+      void entry.url.then(
+        (url) => URL.revokeObjectURL(url),
+        () => {},
+      );
+    },
+  };
+}
 
 function useAsset(reference: string) {
   const [local, setLocal] = useState<{ reference: string; url: string } | null>(
@@ -9,39 +37,163 @@ function useAsset(reference: string) {
   useEffect(() => {
     if (!isLocalFile(reference)) return;
     let disposed = false;
-    let url = "";
-    void readLocalFile(reference)
-      .then((file) => {
+    const asset = acquireLocalAsset(reference);
+    void asset.url
+      .then((url) => {
         if (disposed) return;
-        url = URL.createObjectURL(file);
         setLocal({ reference, url });
       })
-      .catch(() => setLocal(null));
+      .catch(() => {
+        if (!disposed) setLocal({ reference, url: "" });
+      });
     return () => {
       disposed = true;
-      if (url) URL.revokeObjectURL(url);
+      asset.release();
     };
   }, [reference]);
-  return isLocalFile(reference)
-    ? local?.reference === reference
-      ? local.url
-      : ""
-    : reference;
+  if (!isLocalFile(reference)) return { url: reference, pending: false };
+  return local?.reference === reference
+    ? { url: local.url, pending: false }
+    : { url: "", pending: true };
 }
 
 export function MediaImage({
   src = "",
-  alt,
+  alt = "",
+  fallbackSrc = "/logo-stg.png",
+  loading = "lazy",
+  decoding = "async",
+  sizes = "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 640px",
+  width = 1200,
+  height = 800,
+  showLoading = false,
+  className,
+  style,
+  onLoad,
+  onError,
   ...props
-}: Omit<ImgHTMLAttributes<HTMLImageElement>, "src"> & { src?: string }) {
-  const url = useAsset(src);
-  // biome-ignore lint/performance/noImgElement: Existing media may be local IndexedDB blobs or arbitrary administrator uploads.
-  return <img {...props} src={url || "/logo-stg.png"} alt={alt} />;
+}: Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "srcSet"> & {
+  src?: string;
+  fallbackSrc?: string;
+  showLoading?: boolean;
+}) {
+  const { url, pending } = useAsset(imageSource(src));
+  const [failedSource, setFailedSource] = useState<string | null>(null);
+  const [loadedResource, setLoadedResource] = useState<string | null>(null);
+  const [unavailableResource, setUnavailableResource] = useState<string | null>(
+    null,
+  );
+  const imageRef = useRef<HTMLImageElement>(null);
+  const source = url && failedSource !== url ? url : fallbackSrc;
+  const resource = `${src}|${source}|${pending}`;
+  const ready = !pending && loadedResource === resource;
+  const unavailable = unavailableResource === resource;
+
+  useEffect(() => {
+    if (!showLoading || pending) return;
+    const image = imageRef.current;
+    // Cached images can finish before hydration attaches their load handler.
+    if (!image?.complete || !image.naturalWidth) return;
+    let disposed = false;
+    void image
+      .decode()
+      .catch(() => {})
+      .then(() => {
+        if (!disposed) setLoadedResource(resource);
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [resource, pending, showLoading]);
+
+  const handleLoad: ImgHTMLAttributes<HTMLImageElement>["onLoad"] = (event) => {
+    onLoad?.(event);
+    if (!showLoading || pending) return;
+    const image = event.currentTarget;
+    void image
+      .decode()
+      .catch(() => {})
+      .then(() => {
+        if (image.isConnected && image.naturalWidth)
+          setLoadedResource(resource);
+      });
+  };
+  const handleError: ImgHTMLAttributes<HTMLImageElement>["onError"] = (
+    event,
+  ) => {
+    if (source !== fallbackSrc) setFailedSource(url);
+    else if (!pending) setUnavailableResource(resource);
+    onError?.(event);
+  };
+  const image = canOptimizeImage(source) ? (
+    <Image
+      {...props}
+      key={resource}
+      ref={imageRef}
+      src={source}
+      alt={alt}
+      width={Number(width)}
+      height={Number(height)}
+      sizes={sizes}
+      loading={loading}
+      decoding={decoding}
+      className={showLoading ? "media-image__picture" : className}
+      style={showLoading ? undefined : style}
+      onLoad={handleLoad}
+      onError={handleError}
+    />
+  ) : (
+    // biome-ignore lint/performance/noImgElement: Blob URLs, SVGs and arbitrary external URLs must keep working without the image optimizer.
+    <img
+      {...props}
+      key={resource}
+      ref={imageRef}
+      src={source}
+      alt={alt}
+      loading={loading}
+      decoding={decoding}
+      className={showLoading ? "media-image__picture" : className}
+      style={showLoading ? undefined : style}
+      onLoad={handleLoad}
+      onError={handleError}
+    />
+  );
+
+  if (!showLoading) return image;
+  return (
+    <span
+      className={`media-image ${className || ""}`}
+      style={style}
+      data-loaded={ready}
+      aria-busy={!ready && !unavailable}
+    >
+      {image}
+      {!ready && (
+        <span className="media-image__placeholder" aria-hidden="true">
+          {unavailable ? (
+            <>
+              <ImageOff size={28} strokeWidth={1.5} />
+              <span>Imagen no disponible</span>
+            </>
+          ) : (
+            <>
+              <LoaderCircle
+                className="media-image__spinner"
+                size={28}
+                strokeWidth={2}
+              />
+              <span>Cargando imagen…</span>
+            </>
+          )}
+        </span>
+      )}
+    </span>
+  );
 }
 
 export function PdfLink({ value }: { value: string }) {
   const reference = documentUrl(value);
-  const url = useAsset(reference || "");
+  const { url } = useAsset(reference || "");
   return reference && url ? (
     <a
       href={url}

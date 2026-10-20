@@ -33,32 +33,43 @@ export function TripsPage({ trips }: { trips: Trip[] }) {
           </div>
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-3">
-          {trips.map((trip) => (
+        <div className="mx-auto mt-10 grid max-w-[400px] auto-rows-fr gap-6 md:max-w-none md:grid-cols-2 lg:grid-cols-3">
+          {trips.map((trip, index) => (
             <article
               key={trip.id}
-              className="group overflow-hidden rounded-lg border border-line bg-surface shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(15,23,42,0.14)]"
+              className="flex flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(15,23,42,0.14)]"
             >
-              <div className="relative overflow-hidden">
-                <MediaImage
-                  src={trip.imageUrl || "/logo-stg.png"}
-                  alt={trip.title}
-                  className="h-64 w-full object-cover transition duration-500 group-hover:scale-105"
-                />
-                {trip.featured && (
-                  <span className="absolute left-4 top-4 rounded-md bg-stg-yellow px-3 py-1 text-xs font-black text-ink">
-                    Destacado
-                  </span>
-                )}
+              <div className="bg-subtle">
+                <div className="flex h-10 items-center px-3">
+                  {trip.featured && (
+                    <span className="inline-flex rounded-md bg-stg-yellow px-3 py-1 text-xs font-black text-ink">
+                      Destacado
+                    </span>
+                  )}
+                </div>
+                <div className="aspect-[4/5]">
+                  <MediaImage
+                    src={trip.imageUrl || "/logo-stg.png"}
+                    alt={trip.title}
+                    showLoading
+                    loading={index < 3 ? "eager" : "lazy"}
+                    fetchPriority={index === 0 ? "high" : "auto"}
+                    sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, (max-width: 1279px) 33vw, 400px"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
               </div>
-              <div className="p-5">
-                <h2 className="text-xl font-black text-foreground">
+              <div className="flex h-[264px] shrink-0 flex-col p-5">
+                <h2
+                  className="line-clamp-2 h-14 shrink-0 text-xl font-black leading-7 text-foreground"
+                  title={trip.title}
+                >
                   {trip.title}
                 </h2>
-                <p className="mt-3 min-h-24 text-sm leading-6 text-muted">
+                <p className="mt-3 h-[72px] shrink-0 overflow-y-auto text-sm leading-6 text-muted">
                   {trip.description}
                 </p>
-                <div className="mt-5 flex flex-wrap gap-3">
+                <div className="mt-auto grid grid-cols-2 gap-3 [&>*]:h-14 [&>*]:justify-center [&>*]:px-2 [&>*]:text-xs">
                   <PdfLink value={trip.pdfUrl} />
                   <a
                     href={whatsappUrl}

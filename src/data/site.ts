@@ -5,6 +5,8 @@ export const commentsEmail = "stglorena@hotmail.com";
 export const companyAddress =
   "Las Heras 418, Galeria del Sol, local 28. Ciudad de Mendoza, Mendoza.";
 export const mapsUrl = "https://maps.app.goo.gl/9Rv9w8jvXLCsnZaM9";
+export const mapsEmbedUrl =
+  "https://www.google.com/maps?cid=2530655102204213242&output=embed";
 export const receiptSystemUrl =
   "https://docs.google.com/spreadsheets/d/17GlSfT7Yb3uPvkxuUnWNn7cF5nJKjOKCZS_c4i52i9k/edit?gid=708542243#gid=708542243";
 
@@ -24,8 +26,7 @@ export const initialTrips: Trip[] = [
     title: "Norte magico",
     description:
       "Salta y Jujuy en un recorrido lleno de colores, cultura local, peñas y excursiones imperdibles.",
-    imageUrl:
-      "https://images.unsplash.com/photo-1601042879364-f3947d3f9c16?auto=format&fit=crop&w=1200&q=80",
+    imageUrl: "/images/destinations/norte.webp",
     pdfUrl: "/pdfs/norte-magico.pdf",
     featured: true,
   },
@@ -34,8 +35,7 @@ export const initialTrips: Trip[] = [
     title: "Bariloche grupal",
     description:
       "Naturaleza patagonica, lagos, cerros y coordinacion completa para viajar tranquilo.",
-    imageUrl:
-      "https://images.unsplash.com/photo-1598791503410-0c0872a3edb1?auto=format&fit=crop&w=1200&q=80",
+    imageUrl: "/images/destinations/bariloche.webp",
     pdfUrl: "/pdfs/bariloche-grupal.pdf",
     featured: true,
   },

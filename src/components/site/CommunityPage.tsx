@@ -2,6 +2,7 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
+  Clock,
   ExternalLink,
   Mail,
   MapPin,
@@ -9,7 +10,12 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { MediaImage } from "@/components/Media";
-import { commentsEmail, companyAddress, mapsUrl } from "@/data/site";
+import {
+  commentsEmail,
+  companyAddress,
+  mapsEmbedUrl,
+  mapsUrl,
+} from "@/data/site";
 import type { Comment, PassengerPhoto } from "@/types";
 import { Metric, PageHeader, SocialLinks } from "./shared";
 
@@ -60,26 +66,54 @@ export function CommunityPage({
             </div>
           </div>
 
-          <a
-            href={mapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="group rounded-lg border border-line bg-subtle p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:border-line"
-          >
-            <div className="flex min-h-[360px] flex-col justify-between rounded-lg border border-line bg-surface p-6">
+          <div className="self-start overflow-hidden rounded-lg border border-line bg-surface shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+            <div className="p-5 sm:p-6">
+              <h2 className="flex items-center gap-2 text-2xl font-black text-foreground">
+                <MapPin
+                  className="shrink-0 text-stg-blue"
+                  size={24}
+                  aria-hidden="true"
+                />
+                Ubicación STG
+              </h2>
+              <p className="mt-3 leading-7 text-muted">{companyAddress}</p>
+            </div>
+            <iframe
+              src={mapsEmbedUrl}
+              title="Ubicación de STG Turismo en Google Maps"
+              className="h-[360px] w-full border-0 bg-subtle"
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+            <div className="space-y-5 p-5 sm:p-6">
               <div>
-                <MapPin className="text-stg-blue" size={36} />
-                <h2 className="mt-5 text-2xl font-black text-foreground">
-                  Ubicacion STG
-                </h2>
-                <p className="mt-3 leading-7 text-muted">{companyAddress}</p>
+                <h3 className="flex items-center gap-2 font-black text-foreground">
+                  <Clock
+                    size={20}
+                    className="text-stg-blue"
+                    aria-hidden="true"
+                  />
+                  Horario de atención
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  Lunes a Viernes de 10 a 18 hs
+                </p>
+                <p className="text-sm leading-6 text-muted">
+                  Sábados: de 9 a 13:30 hs
+                </p>
               </div>
-              <span className="inline-flex w-fit items-center gap-2 rounded-md bg-stg-yellow px-4 py-2 text-sm font-black text-ink">
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex w-fit items-center gap-2 rounded-md bg-stg-yellow px-4 py-2 text-sm font-black text-ink"
+              >
                 Abrir en Maps
                 <ExternalLink size={16} />
-              </span>
+              </a>
             </div>
-          </a>
+          </div>
         </div>
       </section>
 
@@ -96,6 +130,7 @@ export function CommunityPage({
               <MediaImage
                 src={activePhoto?.imageUrl || "/logo-stg.png"}
                 alt={activePhoto?.title || "Pasajeros viajando con STG"}
+                showLoading
                 className="h-full w-full object-cover opacity-95"
               />
               {activePhoto && (

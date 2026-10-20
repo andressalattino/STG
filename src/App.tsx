@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import {
   type FormEvent,
@@ -7,9 +8,6 @@ import {
   useMemo,
   useState,
 } from "react";
-import { AdminComments, useComments } from "./components/AdminComments";
-import { AdminNavigation } from "./components/admin/AdminNavigation";
-import { AdminPage } from "./components/admin/AdminPage";
 import { DeleteConfirmation } from "./components/DeleteConfirmation";
 import { CommunityPage } from "./components/site/CommunityPage";
 import { Footer } from "./components/site/Footer";
@@ -19,11 +17,9 @@ import { type Page, pagePaths } from "./components/site/navigation";
 import { TripsPage } from "./components/site/TripsPage";
 import { initialPassengerPhotos, initialTrips } from "./data/site";
 import { useAdminSession } from "./features/auth/useAdminSession";
-import { ExpensesWorkspace } from "./features/finance/ExpensesWorkspace";
-import { StatisticsDashboard } from "./features/finance/StatisticsDashboard";
-import { QuotationsWorkspace } from "./features/quotations/QuotationsWorkspace";
-import { ReceiptWorkspace } from "./features/receipts/ReceiptWorkspace";
+import { useComments } from "./features/comments/useComments";
 import { documentUrl, storeLocalFile } from "./lib/local-files";
+import { prepareImageUpload } from "./lib/prepare-image";
 import {
   getStoredPassengerPhotos,
   getStoredTrips,
@@ -44,6 +40,60 @@ import {
   validateUploadFile,
 } from "./lib/supabase";
 import type { PassengerPhoto, Trip } from "./types";
+
+function AdminModuleLoading() {
+  return (
+    <div role="status" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      Cargando sección…
+    </div>
+  );
+}
+
+const AdminPage = dynamic(
+  () =>
+    import("./components/admin/AdminPage").then((module) => module.AdminPage),
+  { loading: AdminModuleLoading },
+);
+const AdminNavigation = dynamic(
+  () =>
+    import("./components/admin/AdminNavigation").then(
+      (module) => module.AdminNavigation,
+    ),
+  { loading: AdminModuleLoading },
+);
+const AdminComments = dynamic(
+  () =>
+    import("./components/AdminComments").then((module) => module.AdminComments),
+  { loading: AdminModuleLoading },
+);
+const ReceiptWorkspace = dynamic(
+  () =>
+    import("./features/receipts/ReceiptWorkspace").then(
+      (module) => module.ReceiptWorkspace,
+    ),
+  { loading: AdminModuleLoading },
+);
+const QuotationsWorkspace = dynamic(
+  () =>
+    import("./features/quotations/QuotationsWorkspace").then(
+      (module) => module.QuotationsWorkspace,
+    ),
+  { loading: AdminModuleLoading },
+);
+const ExpensesWorkspace = dynamic(
+  () =>
+    import("./features/finance/ExpensesWorkspace").then(
+      (module) => module.ExpensesWorkspace,
+    ),
+  { loading: AdminModuleLoading },
+);
+const StatisticsDashboard = dynamic(
+  () =>
+    import("./features/finance/StatisticsDashboard").then(
+      (module) => module.StatisticsDashboard,
+    ),
+  { loading: AdminModuleLoading },
+);
 
 const blankTrip: Trip = {
   id: "",
@@ -403,9 +453,10 @@ function App() {
 
     try {
       validateUploadFile(file, "image");
+      const imageFile = await prepareImageUpload(file);
       const imageUrl = hasSupabaseAdminSession
-        ? await uploadTripImage(file)
-        : await storeLocalFile(file);
+        ? await uploadTripImage(imageFile)
+        : await storeLocalFile(imageFile);
       setEditingTrip((current) => ({ ...current, imageUrl }));
       setImageUploadStatus(
         hasSupabaseAdminSession
@@ -451,9 +502,10 @@ function App() {
 
     try {
       validateUploadFile(file, "image");
+      const imageFile = await prepareImageUpload(file);
       const imageUrl = hasSupabaseAdminSession
-        ? await uploadPassengerImage(file)
-        : await storeLocalFile(file);
+        ? await uploadPassengerImage(imageFile)
+        : await storeLocalFile(imageFile);
       setEditingPassengerPhoto((current) => ({ ...current, imageUrl }));
       setPassengerUploadStatus(
         hasSupabaseAdminSession
@@ -536,6 +588,7 @@ function App() {
         {page === "admin" && isAdmin && <AdminNavigation />}
         {page === "inicio" && (
           <HomePage
+            trips={trips}
             featuredTrips={featuredTrips}
             destinationTiles={destinationTiles}
             onNavigate={goTo}

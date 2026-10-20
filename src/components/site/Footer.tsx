@@ -25,12 +25,12 @@ export function Footer({ onNavigate }: { onNavigate: (page: Page) => void }) {
               Comunidad
             </button>
             <a href={mapsUrl}>Maps</a>
-            <button type="button" onClick={() => onNavigate("admin")}>
-              Administración
-            </button>
           </div>
         </div>
         <SocialLinks />
+        <p className="border-t border-line pt-5 text-xs leading-5 text-muted">
+          © 2026 STG. Todos los derechos reservados.
+        </p>
       </div>
     </footer>
   );
