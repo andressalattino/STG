@@ -12,8 +12,10 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { ContractData } from "@/features/contracts/domain";
 import type { QuotationData } from "@/features/quotations/domain";
 
 const timestamps = () => ({
@@ -60,6 +62,51 @@ export const privateSchema = pgSchema("stg_private");
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType: () => "bytea",
 });
+export const contractCounter = privateSchema
+  .table("contract_counter", {
+    id: integer("id").primaryKey(),
+    nextNumber: integer("next_number").notNull(),
+  })
+  .enableRLS();
+export const contracts = privateSchema
+  .table(
+    "contracts",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      number: integer("number").notNull(),
+      version: integer("version").notNull(),
+      previousId: uuid("previous_id"),
+      requestId: uuid("request_id").unique().notNull(),
+      fingerprint: text("fingerprint").notNull(),
+      createdBy: uuid("created_by").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+      destination: text("destination").notNull(),
+      passengerNames: text("passenger_names").notNull(),
+      passengerDnis: text("passenger_dnis").notNull(),
+      data: jsonb("data").$type<ContractData>().notNull(),
+      templateVersion: text("template_version").notNull().default("v1"),
+    },
+    (t) => [
+      uniqueIndex("contract_number_version_idx").on(t.number, t.version),
+      index("contract_previous_idx").on(t.previousId),
+      check(
+        "contract_number_version_rules",
+        sql`${t.number} between 1 and 999999 and ${t.version} between 1 and 9999 and ((${t.version} = 1 and ${t.previousId} is null) or (${t.version} > 1 and ${t.previousId} is not null))`,
+      ),
+    ],
+  )
+  .enableRLS();
+export const contractDocuments = privateSchema
+  .table("contract_documents", {
+    contractId: uuid("contract_id")
+      .primaryKey()
+      .references(() => contracts.id),
+    content: bytea("content").notNull(),
+    sha256: text("sha256").notNull(),
+  })
+  .enableRLS();
 export const quotationCounter = privateSchema
   .table("quotation_counter", {
     id: integer("id").primaryKey(),

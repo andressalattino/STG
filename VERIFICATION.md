@@ -57,3 +57,27 @@ No se desplegó la web ni se probó un enlace público real de siete días. Comp
 El análisis completo de dependencias mantiene cuatro avisos moderados de desarrollo provenientes de la cadena `drizzle-kit → @esbuild-kit → esbuild`. La solución automática propuesta por npm implica retroceder Drizzle Kit a una versión incompatible con el esquema actual; no se aplicó ese cambio. No aparecen esos paquetes en las dependencias de producción. Reevaluar la actualización de Drizzle Kit cuando exista una versión estable compatible que retire esa dependencia.
 
 El servidor de pruebas local utiliza el puerto 3010. No se modificó Grafana ni el proyecto de práctica `sistema-recibos-stg`.
+
+## Contratos - 20 de octubre de 2026
+
+Se agregó `/admin/contratos` con carga diferida, formulario de viaje, hoteles/habitaciones/comidas, excursiones, vuelos y pasajeros; valores individuales, total del grupo, seña y resto en ARS/USD con cotización editable. El historial permite buscar por número, pasajero, DNI o destino. Las correcciones conservan el número e incrementan la versión, sin modificar documentos anteriores; las versiones desactualizadas no pueden sobrescribir una más reciente.
+
+La migración `0006_contracts` se generó con Drizzle y se aplicó a la base configurada. La comprobación de solo lectura confirmó cero contratos y PDF, próximo número 000001, RLS habilitado y ningún permiso público sobre las tres tablas nuevas. Los avisos informativos del asesor sobre ausencia de políticas son esperados en estas tablas privadas: solo el servidor autorizado accede a ellas. No se crearon contratos ni movimientos financieros reales.
+
+Pasaron `build`, `typecheck`, `lint`, las 18 pruebas de negocio/base/PDF y las seis pruebas de navegador: contratos, continuidad de sesión, recuperación, recibos, finanzas y cotizaciones. Auth/API se simulan en las pruebas de interfaz. Se ajustó una espera de la prueba de finanzas para comprobar los gráficos del período actualizado en lugar del estado anterior. Las cuatro operaciones de API de contratos rechazaron solicitudes anónimas con HTTP 401.
+
+Los PDF de ejemplo se renderizaron con Poppler y se inspeccionaron visualmente. El habitual ocupa una hoja A4 con ambas firmas; el extenso ocupa tres páginas A4, con encabezados de continuación, tablas y firmas sin recortes ni páginas dedicadas únicamente a firmar. Los ejemplos no son contratos registrados. El servidor de producción local para esta revisión utiliza el puerto 3011.
+
+### Ajustes aprobados de contratos - una sola hoja A4
+
+Se reemplazó vuelos por Transporte (Aéreo con especificaciones o Bus Cama/Semicama), se incorporaron los cuatro regímenes de comida solicitados y las variantes Single, Doble/Triple matrimonial e individual y Cuádruple. El total puede sobrescribirse y volver al cálculo automático; el saldo y equivalente en pesos usan el total elegido. Se limitó cada contrato a seis pasajeros y tres hoteles, tanto en el formulario como en la validación del servidor.
+
+La plantilla v2 genera exactamente una página A4 de 595,28 × 841,89 puntos, con cuerpo entre 9,5 y 8,5 puntos, ambos teléfonos y dos líneas separadas para las firmas. Reemplaza la continuación en varias páginas descrita en la etapa anterior. Si el contenido no entra, responde HTTP 400 sin guardado ni consumo de numeración; una prueba transaccional comprueba el rollback. Los PDF históricos permanecen intactos. No se requirió otra migración para estos ajustes.
+
+Pasaron nuevamente la compilación de producción, TypeScript, Biome, las 19 pruebas de negocio/base/PDF y las seis pruebas de navegador (contratos, navegación, recibos, finanzas, cotizaciones y recuperación). La interfaz verifica límites de cantidad, ambas variantes de transporte, precio manual persistente y restablecimiento automático, recuperación tras rechazo por extensión, reintento idempotente y versiones. Auth/API simuladas; no se crearon documentos ni movimientos reales. Los ejemplos normal y de seis pasajeros/tres hoteles se renderizaron con Poppler y se revisaron visualmente: una página A4 cada uno, sin recortes ni superposiciones. La versión actualizada está ejecutándose en localhost:3011.
+
+### Número de reserva manual y filas sin usar
+
+Se agregó un número de reserva opcional de hasta 60 caracteres, independiente del contador de contratos y conservado con los datos de cada versión. Los registros anteriores se adaptan con el campo vacío sin modificar sus PDF. La plantilla imprime siempre tres filas de hoteles y seis de pasajeros; las filas sin usar quedan vacías, sin crear datos ni alterar los totales. Los ejemplos parcial y completo se renderizaron y revisaron visualmente en una sola hoja A4. Las 19 pruebas y Biome pasaron, incluida compatibilidad con datos anteriores, persistencia de la reserva y el caso sin hoteles/con un pasajero.
+
+La compilación de producción con TypeScript y `test:contracts` también pasaron. El navegador comprobó el guardado de una reserva con ceros iniciales y su conservación al crear una nueva versión, sin agregar filas ficticias a la solicitud ni alterar el total. La versión se dejó ejecutándose en localhost:3011. La prueba usó Auth/API simuladas, sin registros reales.

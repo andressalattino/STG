@@ -166,6 +166,7 @@ const token = `${encode({ alg: "HS256", typ: "JWT" })}.${encode({ sub: user.id, 
     await page.getByLabel("Desde", { exact: true }).fill("2026-10-01");
     await page.getByLabel("Hasta", { exact: true }).fill("2026-10-02");
     await page.getByRole("button", { name: "Aplicar período" }).click();
+    await page.getByText(/Período:.*01\/10\/2026.*02\/10\/2026/).waitFor();
     await page.getByText("$ 24.600,00", { exact: true }).waitFor();
     assert.equal(lastStats.from, "2026-10-01");
     assert.equal(lastStats.to, "2026-10-02");

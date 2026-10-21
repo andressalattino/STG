@@ -12,6 +12,7 @@ export function AdminNavigation() {
         ["/admin", "Viajes y contenido"],
         ["/admin/recibos", "Recibos"],
         ["/admin/cotizaciones", "Cotizaciones"],
+        ["/admin/contratos", "Contratos"],
         ["/admin/egresos", "Egresos"],
         ["/admin/estadisticas", "Estadísticas"],
       ].map(([href, label]) => (

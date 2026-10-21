@@ -94,6 +94,13 @@ const StatisticsDashboard = dynamic(
     ),
   { loading: AdminModuleLoading },
 );
+const ContractsWorkspace = dynamic(
+  () =>
+    import("./features/contracts/ContractsWorkspace").then(
+      (module) => module.ContractsWorkspace,
+    ),
+  { loading: AdminModuleLoading },
+);
 
 const blankTrip: Trip = {
   id: "",
@@ -686,6 +693,9 @@ function App() {
         )}
         {isAdmin && pathname === "/admin/cotizaciones" && (
           <QuotationsWorkspace onLogout={() => void logout()} />
+        )}
+        {isAdmin && pathname === "/admin/contratos" && (
+          <ContractsWorkspace onLogout={() => void logout()} />
         )}
         {isAdmin && pathname === "/admin/estadisticas" && (
           <StatisticsDashboard onLogout={() => void logout()} />

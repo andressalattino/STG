@@ -53,6 +53,20 @@ El PDF sigue el estilo del modelo con logo, amarillo y azul, resumen, transporte
 
 Aplicar `npm run db:migrate` antes de publicar esta versión. `npm run test:quotations` prueba el formulario con API simulada; `npm run pdf:quotation` genera ejemplos en `.artifacts`, sin registrar cotizaciones reales.
 
+## Contratos
+
+En **Administración → Contratos** (`/admin/contratos`) se emiten documentos con el título **Contratos**, fecha/hora de Argentina y numeración independiente desde **000001**. El formulario permite salida y regreso con fecha, hora opcional y lugar; hasta **3 hoteles** con estrellas, ingreso/egreso y habitaciones; excursiones y hasta **6 pasajeros** con nombre, DNI, nacimiento y teléfono opcional. Las habitaciones son Single, Doble matrimonial, Doble individual, Triple matrimonial, Triple individual y Cuádruple. Cada hotel puede elegir Desayuno, Media pensión, Pensión completa o All inclusive. En **Transporte** se agregan aéreos con especificaciones o bus con servicio Cama/Semicama y recorrido opcional.
+
+El campo **N.º de reserva (manual)** es opcional y admite números o letras, conservando los ceros iniciales. Se guarda con cada versión y figura en el PDF, separado del número automático de contrato. El PDF mantiene siempre tres filas de hoteles y seis de pasajeros; las filas sin usar quedan en blanco y no intervienen en los cálculos ni se guardan como personas o alojamientos adicionales.
+
+El valor individual se multiplica por la cantidad de pasajeros para calcular **Efectivo (total)**. Ese total se puede modificar: el importe manual se conserva aunque cambien los pasajeros o el precio individual, hasta elegir **Volver al cálculo automático**. La seña se expresa en la misma moneda y el resto se calcula a partir del total elegido. ARS usa cotización 1; USD permite consultar el dólar oficial de venta o ingresar una cotización manual. La seña indicada en un contrato no crea recibos ni modifica las estadísticas.
+
+**Vista previa A4** no guarda ni consume números. **Guardar contrato y PDF** conserva el documento emitido en el esquema privado. Los reintentos del mismo envío recuperan el documento existente. Las correcciones se hacen con **Crear nueva versión** desde la última versión del historial: conservan el número, incrementan la versión y no sobrescriben datos ni PDF anteriores. Se puede buscar por número, cualquier pasajero, DNI (con o sin puntos) o destino.
+
+Cada contrato nuevo ocupa exactamente **una hoja de 210 × 297 mm (A4)**. El diseño compacto ajusta la tipografía del cuerpo entre 9,5 y 8,5 puntos. Si el contenido no entra, se solicita abreviarlo: no se corta texto, no se agrega otra página, no se guarda el contrato ni se consume su número. Las dos firmas separadas del cliente y vendedor quedan en la parte inferior para completar a mano, sin campos de aclaración. El encabezado incluye ambos teléfonos: 261-5458242 y 2617576755. Imprimir en A4 a tamaño real/100 %. No se incluyen condiciones comerciales. Los PDF emitidos anteriormente se conservan tal como fueron guardados; este diseño se aplica a los nuevos contratos y versiones.
+
+Aplicar `npm run db:migrate` antes de publicar esta versión. `npm run db:check:contracts` comprueba tablas, documentos, contador y permisos sin modificar datos. `npm run pdf:contract` genera ejemplos con datos ficticios en `.artifacts/contracts`. `npm run test:contracts` verifica el flujo de navegador con Auth/API simuladas.
+
 ## Organización
 
 | Carpeta | Responsabilidad |

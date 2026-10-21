@@ -15,11 +15,11 @@ export function json(data: unknown, status = 200) {
     headers: { "Cache-Control": "no-store" },
   });
 }
-export async function readJson(request: Request) {
-  if (Number(request.headers.get("content-length") ?? 0) > 32_768)
+export async function readJson(request: Request, limit = 32_768) {
+  if (Number(request.headers.get("content-length") ?? 0) > limit)
     throw new HttpError(413, "Solicitud demasiado grande.");
   const body = await request.text();
-  if (body.length > 32_768)
+  if (Buffer.byteLength(body, "utf8") > limit)
     throw new HttpError(413, "Solicitud demasiado grande.");
   try {
     return JSON.parse(body) as unknown;
@@ -39,6 +39,14 @@ export function apiError(error: unknown) {
       400,
     );
   const code = error instanceof Error ? error.message : "";
+  if (code === "CONTRACT_SINGLE_PAGE_OVERFLOW")
+    return json(
+      {
+        error:
+          "El contenido supera una sola hoja A4. Abreviá las observaciones, excursiones o especificaciones de transporte y volvé a intentar. No se guardó el contrato.",
+      },
+      400,
+    );
   if (code === "PDF_TEXT_OVERFLOW")
     return json(
       {

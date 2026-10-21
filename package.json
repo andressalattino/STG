@@ -20,6 +20,9 @@
     "test:navigation": "node tests/admin-navigation.cjs",
     "test:finance": "node tests/finance-ui.cjs",
     "test:quotations": "node tests/quotations-ui.cjs",
+    "test:contracts": "node tests/contracts-ui.cjs",
+    "pdf:contract": "tsx scripts/sample-contract.ts",
+    "db:check:contracts": "tsx scripts/check-contracts.ts",
     "pdf:quotation": "tsx scripts/sample-quotation.ts",
     "db:check:finance": "tsx scripts/check-finance.ts",
     "db:check": "tsx scripts/check-db.ts"

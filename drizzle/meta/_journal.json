@@ -43,6 +43,13 @@
       "when": 1791296410358,
       "tag": "0005_mute_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792529773430,
+      "tag": "0006_contracts",
+      "breakpoints": true
     }
   ]
 }
