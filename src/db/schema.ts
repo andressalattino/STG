@@ -17,6 +17,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type { ContractData } from "@/features/contracts/domain";
 import type { QuotationData } from "@/features/quotations/domain";
+import type { ReceiptPayment } from "@/features/receipts/domain";
 
 const timestamps = () => ({
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -169,6 +170,7 @@ export const receipts = privateSchema.table("receipts", {
   travelDate: date("travel_date").notNull(),
   destination: text("destination").notNull(),
   paymentMethod: text("payment_method").notNull(),
+  payments: jsonb("payments").$type<ReceiptPayment[]>().notNull().default([]),
   rateSource: text("rate_source").notNull(),
   quoteUpdatedAt: timestamp("quote_updated_at", { withTimezone: true }),
   templateVersion: text("template_version").notNull().default("v1"),

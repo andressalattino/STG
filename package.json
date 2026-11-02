@@ -22,6 +22,8 @@
     "test:quotations": "node tests/quotations-ui.cjs",
     "test:contracts": "node tests/contracts-ui.cjs",
     "pdf:contract": "tsx scripts/sample-contract.ts",
+    "pdf:receipt": "tsx scripts/sample-receipt-payments.ts",
+    "db:check:payments": "tsx scripts/check-receipt-payments.ts",
     "db:check:contracts": "tsx scripts/check-contracts.ts",
     "pdf:quotation": "tsx scripts/sample-quotation.ts",
     "db:check:finance": "tsx scripts/check-finance.ts",

@@ -22,6 +22,11 @@ const accessToken = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: userId, e
   let receipts = [];
   let savedBody;
   let quoteFail = false;
+  let holdQuote = false,
+    releaseQuote,
+    quoteHeld = false,
+    quoteStarted;
+  let lostInput;
   await page.route("**/auth/v1/**", async (route) => {
     if (route.request().method() === "OPTIONS")
       return route.fulfill({
@@ -52,24 +57,34 @@ const accessToken = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: userId, e
   await page.route("**/api/admin/session", (route) =>
     route.fulfill({ json: { id: userId, email: "qa@example.test" } }),
   );
-  await page.route("**/api/exchange-rate", (route) =>
-    quoteFail
+  await page.route("**/api/exchange-rate", async (route) => {
+    if (holdQuote) {
+      holdQuote = false;
+      quoteHeld = true;
+      quoteStarted?.();
+      await new Promise((resolve) => {
+        releaseQuote = resolve;
+      });
+    }
+    return quoteFail
       ? route.fulfill({
           status: 502,
           json: {
             error: "Cotización no disponible. Podés ingresarla manualmente.",
           },
         })
-      : route.fulfill({
-          json: {
-            value: "1540",
-            updatedAt: new Date().toISOString(),
-            fetchedAt: new Date().toISOString(),
-            source: "DolarAPI",
-            side: "venta",
-          },
-        }),
-  );
+      : route
+          .fulfill({
+            json: {
+              value: "1540",
+              updatedAt: new Date().toISOString(),
+              fetchedAt: new Date().toISOString(),
+              source: "DolarAPI",
+              side: "venta",
+            },
+          })
+          .catch(() => {});
+  });
   await page.route("**/api/receipts**", async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith("/pdf"))
@@ -87,15 +102,35 @@ const accessToken = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: userId, e
       });
     if (route.request().method() === "POST") {
       savedBody = route.request().postDataJSON();
+      if (lostInput) {
+        assert.deepEqual(
+          savedBody,
+          lostInput,
+          "Retry must keep all original payment amounts and rates.",
+        );
+        lostInput = null;
+        return route.fulfill({
+          json: { receipt: receipts[0], replayed: true },
+        });
+      }
       const receipt = {
         ...savedBody,
-        id: receiptId,
-        number: 1,
-        totalArs: "15500.00",
+        id: receipts.length
+          ? "20000000-0000-4000-8000-000000000002"
+          : receiptId,
+        number: receipts.length + 1,
+        totalArs: savedBody.currency === "ARS" ? savedBody.amount : "15500.00",
         createdAt: new Date().toISOString(),
         templateVersion: "v1",
       };
-      receipts = [receipt];
+      receipts = [receipt, ...receipts];
+      if (receipt.number === 2) {
+        lostInput = savedBody;
+        return route.fulfill({
+          status: 503,
+          json: { error: "Simulated lost response" },
+        });
+      }
       return route.fulfill({ status: 201, json: { receipt, replayed: false } });
     }
     return route.fulfill({
@@ -118,9 +153,9 @@ const accessToken = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: userId, e
       .waitFor();
     await page.getByLabel("Cliente", { exact: true }).fill("Cliente de prueba");
     await page
-      .getByRole("combobox", { name: /Moneda/ })
+      .getByRole("combobox", { name: "Método de pago", exact: true })
       .first()
-      .selectOption("USD");
+      .selectOption("Dólares");
     await page.getByLabel("Cotización en ARS").waitFor();
     await page.waitForFunction(
       () =>
@@ -188,11 +223,120 @@ const accessToken = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: userId, e
       .getByRole("button", { name: "Descargar recibo 000001" })
       .first()
       .click();
+    await page
+      .getByLabel("Cliente", { exact: true })
+      .fill("Cliente pago mixto");
+    await page
+      .getByLabel("Importe recibido (ARS)", { exact: true })
+      .fill("30000");
+    await page
+      .getByRole("button", { name: "Agregar pago", exact: true })
+      .click();
+    await page.waitForFunction(
+      () =>
+        document.querySelector('input[aria-describedby="rate-help"]')?.value ===
+        "1540",
+    );
+    await page.getByLabel("Importe recibido (USD)", { exact: true }).fill("10");
+    await page.getByLabel("Cotización en ARS").fill("1550");
+    assert.match(
+      await page.locator("form").first().innerText(),
+      /ARS 45\.500,00/,
+    );
+    for (const [index, amount] of [
+      [3, "5000"],
+      [4, "1000"],
+    ]) {
+      await page
+        .getByRole("button", { name: "Agregar pago", exact: true })
+        .click();
+      await page
+        .getByRole("group", { name: `Pago ${index}`, exact: true })
+        .getByRole("textbox", { name: "Importe recibido (ARS)", exact: true })
+        .fill(amount);
+    }
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Agregar pago", exact: true })
+        .isDisabled(),
+      true,
+    );
+    assert.match(
+      await page.locator("form").first().innerText(),
+      /ARS 51\.500,00/,
+    );
+    await page
+      .getByRole("button", { name: "Quitar pago 4", exact: true })
+      .click();
+    assert.match(
+      await page.locator("form").first().innerText(),
+      /ARS 50\.500,00/,
+    );
+    await page
+      .getByRole("button", { name: "Agregar pago", exact: true })
+      .click();
+    await page
+      .getByRole("group", { name: "Pago 4", exact: true })
+      .getByRole("textbox", { name: "Importe recibido (ARS)", exact: true })
+      .fill("1000");
+    holdQuote = true;
+    const quoteStartedPromise = new Promise((resolve) => {
+      quoteStarted = resolve;
+    });
+    await page
+      .getByRole("button", { name: "Actualizar dólar oficial" })
+      .click();
+    await quoteStartedPromise;
+    assert.equal(quoteHeld, true);
+    await page.getByLabel("Cotización en ARS").fill("1600");
+    releaseQuote();
+    await page.waitForTimeout(100);
+    assert.equal(
+      await page.getByLabel("Cotización en ARS").inputValue(),
+      "1600",
+      "A late automatic quote must not replace the manual value.",
+    );
+    await page.getByLabel("Cotización en ARS").fill("1550");
+    await page.getByLabel("N.º de reserva").fill("00126");
+    await page.getByLabel("Cantidad de pasajeros").fill("2");
+    await page.getByLabel("Fecha de viaje", { exact: true }).fill("2027-02-21");
+    await page.getByLabel("Destino / viaje", { exact: true }).fill("Bariloche");
+    await page.screenshot({
+      path: `${output}/recibos-pago-mixto.png`,
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    );
+    await page.screenshot({
+      path: `${output}/recibos-pago-mixto-movil.png`,
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1536, height: 1000 });
+    await page
+      .getByRole("button", { name: "Generar recibo", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Reintentar el mismo envío", exact: true })
+      .click();
+    await page
+      .getByRole("heading", { name: "Recibo 000002 emitido correctamente" })
+      .waitFor();
+    assert.equal(savedBody.amount, "51500.00");
+    assert.equal(savedBody.exchangeRate, "1.000000");
+    assert.equal(savedBody.payments[1].exchangeRate, "1550.000000");
+    assert.equal(savedBody.rateSource, "manual");
+    assert.equal(savedBody.quoteUpdatedAt, null);
+    await page.getByRole("cell", { name: /Pesos: ARS 30\.000,00/ }).waitFor();
+    assert.equal(await page.locator("tbody tr").count(), 2);
     quoteFail = true;
     await page
-      .getByRole("combobox", { name: /Moneda/ })
+      .getByRole("combobox", { name: "Método de pago", exact: true })
       .first()
-      .selectOption("USD");
+      .selectOption("Dólares");
     await page
       .getByText("Cotización no disponible. Podés ingresarla manualmente.", {
         exact: true,
@@ -206,9 +350,9 @@ const accessToken = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: userId, e
       true,
     );
     await page
-      .getByRole("combobox", { name: /Moneda/ })
+      .getByRole("combobox", { name: "Método de pago", exact: true })
       .first()
-      .selectOption("ARS");
+      .selectOption("Pesos");
     assert.equal(await page.getByLabel("Cotización en ARS").inputValue(), "1");
     assert.equal(
       await page.getByLabel("Cotización en ARS").getAttribute("readonly"),

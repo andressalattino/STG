@@ -33,7 +33,11 @@ Los gráficos permiten agrupar por día, semana o mes. El modo automático utili
 
 El nuevo sistema comienza en **000001**. Los recibos anteriores de Google Sheets no se importan automáticamente. La migración nunca reinicia un contador existente.
 
-Completar cliente, moneda, importe, reserva, pasajeros, fecha y destino. La forma de pago figura también en el modelo PDF. En ARS, la cotización es 1. En USD se consulta la cotización **oficial de venta** de DolarAPI, mostrando cuándo fue actualizada y permitiendo cambiarla. Si el proveedor falla, se puede ingresar el valor manualmente. No usar separadores de miles al escribir importes; se admite punto o coma decimal.
+Completar cliente, reserva, pasajeros, fecha y destino. En **Pagos recibidos**, **Agregar pago** permite combinar Pesos, Dólares, Tarjeta de crédito y Tarjeta de débito, con un importe por método. Pesos y tarjetas se cargan en ARS. Al agregar dólares se consulta la cotización **oficial de venta** de DolarAPI, mostrando cuándo fue actualizada. **La cotización siempre se puede editar**: el valor manual tiene prioridad, incluso si una consulta anterior termina después. Si el proveedor falla, se puede ingresar manualmente. No usar separadores de miles al escribir importes; se admite punto o coma decimal.
+
+El total en pesos suma cada pago, convirtiendo los dólares con la cotización elegida y redondeando a centavos. Se guardan los importes originales, la cotización y los equivalentes en pesos. El historial muestra el desglose; un pago mixto aparece al filtrar por cualquiera de sus monedas. Las estadísticas suman el total del recibo una sola vez. Los recibos anteriores y sus PDF se conservan. Solo se adapta el recuadro de detalle de pago para un máximo de cuatro renglones; las dos copias siguen en una única hoja A4.
+
+La migración `0007_fair_wendell_rand` agrega la columna privada `payments`, sin reiniciar la numeración. `npm run db:check:payments` verifica columna, permisos, contador y huellas de los PDF sin modificar datos. `npm run pdf:receipt` genera ejemplos ficticios con dos y cuatro métodos en `.artifacts/receipt-payments`.
 
 El historial incluye todos los datos solicitados, búsqueda, moneda, fechas de emisión y paginación. Los horarios se muestran en Argentina. En pantallas pequeñas, deslizar la tabla horizontalmente para ver todas las columnas.
 

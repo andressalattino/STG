@@ -1,0 +1,1 @@
+ALTER TABLE "stg_private"."receipts" ADD COLUMN "payments" jsonb DEFAULT '[]'::jsonb NOT NULL;

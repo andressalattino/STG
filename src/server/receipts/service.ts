@@ -27,6 +27,7 @@ export function publicReceipt(
     travelDate: row.travelDate,
     destination: row.destination,
     paymentMethod: row.paymentMethod as ReceiptRecord["paymentMethod"],
+    payments: row.payments,
     rateSource: row.rateSource as ReceiptRecord["rateSource"],
     quoteUpdatedAt: row.quoteUpdatedAt?.toISOString() ?? null,
     templateVersion: row.templateVersion,
@@ -37,9 +38,9 @@ export async function issueReceipt(
   input: ReceiptInput,
   userId: string,
 ) {
-  const { requestId, ...values } = input;
+  const { requestId, payments, ...values } = input;
   const fingerprint = createHash("sha256")
-    .update(JSON.stringify(values))
+    .update(JSON.stringify(payments?.length ? { ...values, payments } : values))
     .digest("hex");
   return db.transaction(async (tx) => {
     // One row lock covers numbering and idempotency across all server instances.
@@ -75,6 +76,8 @@ export async function issueReceipt(
       .insert(receipts)
       .values({
         ...values,
+        payments: payments ?? [],
+        templateVersion: payments?.length ? "v2-payments" : "v1",
         requestId,
         fingerprint,
         number: counter.nextNumber,

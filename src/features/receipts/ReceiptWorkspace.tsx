@@ -320,6 +320,7 @@ export function ReceiptWorkspace({ onLogout }: { onLogout: () => void }) {
                     "Moneda",
                     "Importe",
                     "Cotización",
+                    "Detalle de pagos",
                     "Total ARS",
                     "PDF",
                   ].map((label) => (
@@ -348,14 +349,54 @@ export function ReceiptWorkspace({ onLogout }: { onLogout: () => void }) {
                     </td>
                     <td>
                       <span className="rounded bg-subtle px-2 py-1 text-xs font-bold">
-                        {receipt.currency}
+                        {receipt.payments?.length
+                          ? [
+                              ...new Set(
+                                receipt.payments.map((p) => p.currency),
+                              ),
+                            ].join(" + ")
+                          : receipt.currency}
                       </span>
                     </td>
                     <td className="tabular-nums">
                       {decimalDisplay(receipt.amount)}
+                      {(receipt.payments?.length ?? 0) > 1 && (
+                        <span className="block text-xs text-muted">
+                          ARS · total de pagos
+                        </span>
+                      )}
                     </td>
                     <td className="tabular-nums">
-                      {decimalDisplay(receipt.exchangeRate, 2, 6)}
+                      {decimalDisplay(
+                        receipt.payments?.find((p) => p.currency === "USD")
+                          ?.exchangeRate ?? receipt.exchangeRate,
+                        2,
+                        6,
+                      )}
+                      {receipt.payments?.some((p) => p.currency === "USD") && (
+                        <span className="block text-xs text-muted">
+                          ARS por USD ·{" "}
+                          {receipt.rateSource === "manual"
+                            ? "manual"
+                            : "oficial"}
+                        </span>
+                      )}
+                    </td>
+                    <td className="min-w-60 whitespace-normal text-xs">
+                      {receipt.payments?.length ? (
+                        <ul className="space-y-1">
+                          {receipt.payments.map((p) => (
+                            <li key={p.method}>
+                              {p.method}: {p.currency}{" "}
+                              {decimalDisplay(p.amount)}
+                              {p.currency === "USD" &&
+                                ` = ARS ${decimalDisplay(p.totalArs)}`}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        receipt.paymentMethod
+                      )}
                     </td>
                     <td className="font-bold tabular-nums">
                       {decimalDisplay(receipt.totalArs)}

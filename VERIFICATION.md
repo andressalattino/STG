@@ -1,5 +1,15 @@
 # Verificación del cambio — 6 de octubre de 2026
 
+## Recibos con pagos combinados - 2 de noviembre de 2026
+
+Se agregó una lista de hasta cuatro métodos distintos: Pesos, Dólares, Tarjeta de crédito y Tarjeta de débito. Tarjetas y pesos usan ARS; el dólar se consulta automáticamente y puede editarse. Editarlo cancela la consulta pendiente y tiene prioridad frente a respuestas tardías. El servidor vuelve a validar y calcular cada equivalente a centavos, suma los pagos y conserva el desglose, la cotización y su origen. Reintentar usa el mismo UUID y los mismos datos, sin duplicar recibos ni ingresos. La API sigue aceptando el formato de recibos anteriores.
+
+La migración aditiva `0007_fair_wendell_rand` agregó `payments` JSONB en la tabla privada de recibos. Antes y después se verificaron los mismos 17 recibos, 17 PDF, próximo número 000018 y la misma huella conjunta de los documentos. RLS continúa habilitado y anon/authenticated siguen sin SELECT directo. Cero recibos reales con pagos de prueba. La numeración y los documentos anteriores no se alteraron; las verificaciones de emisión usan PGlite o Auth/API simuladas.
+
+La plantilla existente se tomó como referencia: se mantienen logo, datos comerciales, reserva, firmas, condiciones y dos copias. Solo se adapta el recuadro de pagos para hasta cuatro renglones; ambos ejemplos se renderizaron con Poppler y se inspeccionaron en una sola hoja A4 de 595 × 842 puntos, sin recortes ni superposiciones. El historial muestra los importes originales y el equivalente USD, y los filtros de moneda incluyen los pagos mixtos. Las estadísticas siguen sumando un único total por recibo.
+
+Pasaron la compilación de producción, TypeScript, Biome, 20 pruebas de negocio/base/PDF y seis pruebas de navegador: recibos, navegación, finanzas, cotizaciones, contratos y recuperación. El navegador verificó dólar automático, edición manual, respuesta automática tardía, cuatro métodos, agregar/quitar pagos, reintento idempotente, desglose del historial y móvil. La versión de revisión está en localhost:3011/admin/recibos.
+
 ## Cotizaciones
 
 - Migración `0005_mute_sunfire` aplicada con Drizzle al proyecto autorizado. Tres tablas privadas con RLS y sin SELECT de anon/authenticated. Contador independiente en 1, cero cotizaciones de prueba en producción.

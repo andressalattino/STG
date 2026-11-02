@@ -50,6 +50,13 @@
       "when": 1792529773430,
       "tag": "0006_contracts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793624095051,
+      "tag": "0007_fair_wendell_rand",
+      "breakpoints": true
     }
   ]
 }

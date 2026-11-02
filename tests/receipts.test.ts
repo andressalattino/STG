@@ -9,6 +9,7 @@ import { drizzle } from "drizzle-orm/pglite";
 import { PDFDocument } from "pdf-lib";
 import { receiptCounter, receiptDocuments, receipts } from "../src/db/schema";
 import {
+  calculatePayments,
   calculateTotal,
   decimalDisplay,
   issuedDate,
@@ -16,6 +17,7 @@ import {
   receiptFilename,
   receiptInputSchema,
 } from "../src/features/receipts/domain";
+import { getStatistics } from "../src/server/finance/service";
 import { issueReceipt } from "../src/server/receipts/service";
 
 const input = (overrides: Record<string, unknown> = {}) =>
@@ -68,6 +70,75 @@ test("Argentina date/time and safe filename", () => {
     receiptFilename({ number: 1, client: "José Pérez / A" }),
     "Recibo_000001_Jose_Perez_A.pdf",
   );
+});
+test("mixed payments convert dollars with the chosen rate, round cents and reject invalid splits", () => {
+  const payments = [
+    { method: "Pesos", amount: "30000" },
+    { method: "Dólares", amount: "10", exchangeRate: "1500" },
+  ];
+  const automatic = input({
+    payments,
+    rateSource: "dolarapi-oficial-venta",
+    quoteUpdatedAt: "2026-11-02T12:00:00Z",
+  });
+  assert.equal(automatic.amount, "45000.00");
+  assert.equal(automatic.currency, "ARS");
+  assert.equal(automatic.exchangeRate, "1.000000");
+  assert.equal(automatic.payments?.[1].exchangeRate, "1500.000000");
+  assert.equal(automatic.payments?.[1].totalArs, "15000.00");
+  const manual = input({
+    payments: [payments[0], { ...payments[1], exchangeRate: "1550" }],
+    quoteUpdatedAt: "2026-11-02T12:00:00Z",
+  });
+  assert.equal(manual.amount, "45500.00");
+  assert.equal(manual.quoteUpdatedAt, null);
+  assert.deepEqual(
+    receiptInputSchema.parse(manual),
+    manual,
+    "A retry must retain the dollar rate of each payment.",
+  );
+  const four = input({
+    payments: [
+      ...payments,
+      { method: "Tarjeta de crédito", amount: "5000" },
+      { method: "Tarjeta de débito", amount: "1000" },
+    ],
+  });
+  assert.equal(four.amount, "51000.00");
+  assert.equal(
+    calculatePayments([
+      { method: "Dólares", amount: "0.01", exchangeRate: "1.5" },
+      { method: "Pesos", amount: "0.01" },
+    ]).totalArs,
+    "0.03",
+  );
+  const usd = input({ payments: [payments[1]] });
+  assert.equal(usd.currency, "USD");
+  assert.equal(usd.exchangeRate, "1500.000000");
+  assert.equal(
+    input({
+      payments: [
+        { method: "Tarjeta de crédito", amount: "10", exchangeRate: "7" },
+      ],
+    }).exchangeRate,
+    "1.000000",
+  );
+  for (const bad of [
+    [],
+    [payments[0], payments[0]],
+    [{ method: "EUR", amount: "10" }],
+    [{ method: "Dólares", amount: "10" }],
+    [{ ...payments[1], exchangeRate: "0" }],
+    [{ method: "Pesos", amount: "1.000,00" }],
+    [{ method: "Pesos", amount: "-1" }],
+    Array(5).fill(payments[0]),
+    [{ method: "Pesos", amount: "999999999999.99" }, payments[1]],
+  ]) {
+    assert.equal(
+      receiptInputSchema.safeParse({ ...input(), payments: bad }).success,
+      false,
+    );
+  }
 });
 test("database issuance is atomic, numbered, immutable and idempotent", async () => {
   const client = new PGlite();
@@ -220,6 +291,42 @@ test("database issuance is atomic, numbered, immutable and idempotent", async ()
       .from(receiptDocuments)
       .where(eq(receiptDocuments.receiptId, first.receipt.id));
     assert.equal(originals[0].sha256, document.sha256);
+    const mixedInput = input({
+      payments: [
+        { method: "Pesos", amount: "30000" },
+        { method: "Dólares", amount: "10", exchangeRate: "1500" },
+      ],
+    });
+    const mixed = await issueReceipt(serviceDb, mixedInput, userId);
+    assert.equal(mixed.receipt.number, 4);
+    assert.equal(mixed.receipt.totalArs, "45000.00");
+    assert.equal(mixed.receipt.payments?.[1].exchangeRate, "1500.000000");
+    assert.equal(
+      (
+        await issueReceipt(
+          serviceDb,
+          receiptInputSchema.parse(mixedInput),
+          userId,
+        )
+      ).receipt.id,
+      mixed.receipt.id,
+    );
+    assert.equal((await db.select().from(receipts)).length, 4);
+    const day = issuedDate(mixed.receipt.createdAt)
+      .split("/")
+      .reverse()
+      .join("-");
+    const stats = await getStatistics(serviceDb, {
+      from: day,
+      to: day,
+      group: "day",
+    });
+    assert.equal(
+      stats.income,
+      "645800.00",
+      "Mixed payments add one receipt to income, without counting the split again.",
+    );
+    assert.equal((await db.select().from(receiptCounter))[0].nextNumber, 5);
   } finally {
     await client.close();
   }

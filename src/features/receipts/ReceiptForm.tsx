@@ -1,12 +1,14 @@
 "use client";
-import { FilePlus2, RefreshCw, ShieldCheck } from "lucide-react";
+import { FilePlus2, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import {
-  calculateTotal,
+  calculatePayments,
   decimalDisplay,
   issuedDate,
   issuedTime,
+  type PaymentMethod,
+  paymentMethods,
   type Quote,
   type ReceiptInput,
   type ReceiptRecord,
@@ -15,14 +17,11 @@ import {
 
 const blank = {
   client: "",
-  currency: "ARS" as "ARS" | "USD",
-  amount: "",
   exchangeRate: "1",
   reservation: "",
   passengers: "1",
   travelDate: "",
   destination: "",
-  paymentMethod: "Transferencia" as ReceiptInput["paymentMethod"],
 };
 export function ReceiptForm({
   enabled,
@@ -32,6 +31,13 @@ export function ReceiptForm({
   onIssued: (receipt: ReceiptRecord) => void;
 }) {
   const [form, setForm] = useState(blank);
+  const [payments, setPayments] = useState<
+    { id: number; method: PaymentMethod; amount: string }[]
+  >([{ id: 0, method: "Pesos", amount: "" }]);
+  const nextPaymentId = useRef(1);
+  const hasUsd = payments.some((p) => p.method === "Dólares");
+  const hasUsdRef = useRef(hasUsd);
+  hasUsdRef.current = hasUsd;
   const [quote, setQuote] = useState<Quote | null>(null);
   const [manualRate, setManualRate] = useState(false);
   const [rateBusy, setRateBusy] = useState(false);
@@ -66,9 +72,7 @@ export function ReceiptForm({
       setQuote(current);
       setManualRate(false);
       setForm((value) =>
-        value.currency === "USD"
-          ? { ...value, exchangeRate: current.value }
-          : value,
+        hasUsdRef.current ? { ...value, exchangeRate: current.value } : value,
       );
     } catch (failure) {
       if (controller.signal.aborted || sequence !== quoteSequence.current)
@@ -82,7 +86,11 @@ export function ReceiptForm({
       if (sequence === quoteSequence.current) setRateBusy(false);
     }
   }
-  function changeCurrency(currency: "ARS" | "USD") {
+  function updatePayments(next: typeof payments) {
+    const needsUsd = next.some((p) => p.method === "Dólares");
+    setPayments(next);
+    hasUsdRef.current = needsUsd;
+    if (needsUsd === hasUsd) return;
     quoteController.current?.abort();
     quoteSequence.current += 1;
     setQuote(null);
@@ -91,10 +99,9 @@ export function ReceiptForm({
     setManualRate(false);
     setForm((value) => ({
       ...value,
-      currency,
-      exchangeRate: currency === "ARS" ? "1" : "",
+      exchangeRate: needsUsd ? "" : "1",
     }));
-    if (currency === "USD") void loadQuote();
+    if (needsUsd) void loadQuote();
   }
   function changeManualRate(value: string) {
     quoteController.current?.abort();
@@ -104,9 +111,17 @@ export function ReceiptForm({
     setForm((current) => ({ ...current, exchangeRate: value }));
   }
   let total = "0,00";
+  let detail: ReturnType<typeof calculatePayments> | null = null;
+  const paymentDrafts = payments.map((p) => ({
+    method: p.method,
+    amount: p.amount,
+    exchangeRate: p.method === "Dólares" ? form.exchangeRate : "1",
+  }));
   try {
-    if (form.amount && form.exchangeRate)
-      total = decimalDisplay(calculateTotal(form.amount, form.exchangeRate));
+    if (payments.every((p) => p.amount) && (!hasUsd || form.exchangeRate)) {
+      detail = calculatePayments(paymentDrafts);
+      total = decimalDisplay(detail.totalArs);
+    }
   } catch {
     /* Incomplete input has no preview total. */
   }
@@ -116,13 +131,13 @@ export function ReceiptForm({
     const parsed = receiptInputSchema.safeParse(
       pendingInput.current ?? {
         ...form,
+        payments: paymentDrafts,
         requestId: requestId.current,
-        rateSource:
-          form.currency === "ARS"
-            ? "ars"
-            : quote && !manualRate
-              ? "dolarapi-oficial-venta"
-              : "manual",
+        rateSource: !hasUsd
+          ? "ars"
+          : quote && !manualRate
+            ? "dolarapi-oficial-venta"
+            : "manual",
         quoteUpdatedAt: quote && !manualRate ? quote.updatedAt : null,
       },
     );
@@ -142,6 +157,10 @@ export function ReceiptForm({
       pendingInput.current = null;
       requestId.current = crypto.randomUUID();
       setForm(blank);
+      setPayments([
+        { id: nextPaymentId.current++, method: "Pesos", amount: "" },
+      ]);
+      hasUsdRef.current = false;
       setQuote(null);
       setManualRate(false);
       setRateError("");
@@ -195,31 +214,112 @@ export function ReceiptForm({
             placeholder="Nombre y apellido o razón social"
           />
         </label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="receipt-field">
-            Moneda
-            <select
-              className="admin-input"
-              value={form.currency}
-              onChange={(e) => changeCurrency(e.target.value as "ARS" | "USD")}
+        <fieldset className="min-w-0 space-y-4">
+          <legend className="mb-3 font-bold">Pagos recibidos</legend>
+          {payments.map((payment, index) => (
+            <fieldset
+              key={payment.id}
+              className="min-w-0 rounded-lg border border-line p-4"
             >
-              <option value="ARS">ARS · Pesos</option>
-              <option value="USD">USD · Dólares</option>
-            </select>
-          </label>
-          <label className="receipt-field">
-            Importe recibido
-            <input
-              name="amount"
-              className="admin-input"
-              inputMode="decimal"
-              required
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              placeholder="Ej. 1500,50"
-            />
-          </label>
-        </div>
+              <legend className="px-1 text-sm font-semibold">
+                Pago {index + 1}
+              </legend>
+              <div className="grid items-end gap-4 sm:grid-cols-2">
+                <label className="receipt-field">
+                  Método de pago
+                  <select
+                    className="admin-input"
+                    value={payment.method}
+                    onChange={(e) =>
+                      updatePayments(
+                        payments.map((p) =>
+                          p.id === payment.id
+                            ? { ...p, method: e.target.value as PaymentMethod }
+                            : p,
+                        ),
+                      )
+                    }
+                  >
+                    {paymentMethods.map((method) => (
+                      <option
+                        key={method}
+                        disabled={payments.some(
+                          (p) => p.id !== payment.id && p.method === method,
+                        )}
+                      >
+                        {method}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="receipt-field">
+                  Importe recibido (
+                  {payment.method === "Dólares" ? "USD" : "ARS"})
+                  <input
+                    className="admin-input"
+                    inputMode="decimal"
+                    required
+                    value={payment.amount}
+                    onChange={(e) =>
+                      setPayments(
+                        payments.map((p) =>
+                          p.id === payment.id
+                            ? { ...p, amount: e.target.value }
+                            : p,
+                        ),
+                      )
+                    }
+                    placeholder="Ej. 1500,50"
+                  />
+                </label>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted">
+                  {detail
+                    ? `Equivalente: ARS ${decimalDisplay(detail.payments[index].totalArs)}`
+                    : payment.method === "Dólares"
+                      ? "Se convierte a pesos con la cotización indicada abajo."
+                      : "Importe en pesos argentinos."}
+                </p>
+                {payments.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn-ghost p-2 text-danger"
+                    aria-label={`Quitar pago ${index + 1}`}
+                    onClick={() =>
+                      updatePayments(
+                        payments.filter((p) => p.id !== payment.id),
+                      )
+                    }
+                  >
+                    <Trash2 size={16} /> Quitar
+                  </button>
+                )}
+              </div>
+            </fieldset>
+          ))}
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={payments.length >= paymentMethods.length}
+            onClick={() => {
+              const method = paymentMethods.find(
+                (m) => !payments.some((p) => p.method === m),
+              );
+              if (method)
+                updatePayments([
+                  ...payments,
+                  { id: nextPaymentId.current++, method, amount: "" },
+                ]);
+            }}
+          >
+            <Plus size={16} /> Agregar pago
+          </button>
+          <p className="text-xs text-muted">
+            Podés combinar los cuatro métodos. Las tarjetas se registran en
+            pesos.
+          </p>
+        </fieldset>
         <div className="rounded-lg border border-line bg-subtle p-4">
           <div className="flex items-center justify-between gap-3">
             <label className="receipt-field flex-1">
@@ -229,7 +329,7 @@ export function ReceiptForm({
                 className="admin-input"
                 inputMode="decimal"
                 required
-                readOnly={form.currency === "ARS"}
+                readOnly={!hasUsd}
                 value={form.exchangeRate}
                 onChange={(e) => changeManualRate(e.target.value)}
                 placeholder={
@@ -237,7 +337,7 @@ export function ReceiptForm({
                 }
               />
             </label>
-            {form.currency === "USD" && (
+            {hasUsd && (
               <button
                 type="button"
                 onClick={() => void loadQuote()}
@@ -253,7 +353,7 @@ export function ReceiptForm({
             )}
           </div>
           <p id="rate-help" className="mt-3 text-xs leading-5 text-muted">
-            {form.currency === "ARS"
+            {!hasUsd
               ? "Para pesos argentinos, la cotización siempre es 1."
               : quote
                 ? `Dólar oficial · venta · DolarAPI. Actualizado ${issuedDate(quote.updatedAt)} a las ${issuedTime(quote.updatedAt)}. ${manualRate ? "Usando tu cotización manual." : "Podés modificar este valor."}`
@@ -312,24 +412,6 @@ export function ReceiptForm({
               value={form.travelDate}
               onChange={(e) => setForm({ ...form, travelDate: e.target.value })}
             />
-          </label>
-          <label className="receipt-field">
-            Forma de pago
-            <select
-              className="admin-input"
-              value={form.paymentMethod}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  paymentMethod: e.target
-                    .value as ReceiptInput["paymentMethod"],
-                })
-              }
-            >
-              {["Transferencia", "Efectivo", "Tarjeta", "Otro"].map((value) => (
-                <option key={value}>{value}</option>
-              ))}
-            </select>
           </label>
         </div>
         <label className="receipt-field">

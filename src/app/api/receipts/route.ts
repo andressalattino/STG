@@ -30,7 +30,12 @@ export async function GET(request: Request) {
             sql`cast(${receipts.number} as text) = ${input.q.replace(/^0+/, "")}`,
           )
         : undefined,
-      input.currency ? eq(receipts.currency, input.currency) : undefined,
+      input.currency
+        ? or(
+            eq(receipts.currency, input.currency),
+            sql`${receipts.payments} @> ${JSON.stringify([{ currency: input.currency }])}::jsonb`,
+          )
+        : undefined,
       input.from
         ? gte(receipts.createdAt, new Date(`${input.from}T00:00:00-03:00`))
         : undefined,
