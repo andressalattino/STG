@@ -34,8 +34,11 @@ const text = (max: number) =>
 const required = (max: number) =>
   text(max).min(1, "Completá los campos obligatorios.");
 const date = z.iso
-  .date()
-  .refine((v) => v >= "1900-01-01" && v <= "2199-12-31", "Fecha inválida.");
+  .date({ error: "Completá una fecha válida." })
+  .refine(
+    (v) => v >= "1900-01-01" && v <= "2199-12-31",
+    "La fecha debe estar entre los años 1900 y 2199.",
+  );
 const time = z.union([
   z.literal(""),
   z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Hora inválida."),
@@ -219,6 +222,29 @@ export const contractInputSchema = z.object({
   previousId: z.uuid().nullable(),
   data: contractDraftSchema,
 });
+export function contractValidationError(error: z.ZodError) {
+  const issue = error.issues[0];
+  const path =
+    issue?.path[0] === "data" ? issue.path.slice(1) : (issue?.path ?? []);
+  const key = path.map(String).join(".");
+  let label = "";
+  if (key === "departure.date") label = "Fecha de salida";
+  if (key === "return.date") label = "Fecha de regreso";
+  if (path[0] === "hotels" && typeof path[1] === "number") {
+    if (path[2] === "checkIn")
+      label = `Hotel ${path[1] + 1} · Ingreso al hotel`;
+    if (path[2] === "checkOut")
+      label = `Hotel ${path[1] + 1} · Egreso del hotel`;
+  }
+  if (
+    path[0] === "passengers" &&
+    typeof path[1] === "number" &&
+    path[2] === "birthDate"
+  )
+    label = `Pasajero ${path[1] + 1} · Fecha de nacimiento`;
+  const message = issue?.message ?? "Revisá los datos.";
+  return { path: key, message: label ? `${label}: ${message}` : message };
+}
 export type ContractData = z.infer<typeof contractDraftSchema>;
 export type ContractInput = z.infer<typeof contractInputSchema>;
 export type ContractRecord = {

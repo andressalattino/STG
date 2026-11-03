@@ -10,12 +10,91 @@ import {
   contractFilename,
   contractInputSchema,
   contractTotals,
+  contractValidationError,
   normalizeContractData,
 } from "../src/features/contracts/domain";
 import { renderContractPdf } from "../src/server/contracts/pdf";
 import { issueContract, listContracts } from "../src/server/contracts/service";
 import { getStatistics } from "../src/server/finance/service";
 import { exampleContract, maximumContract } from "./contract-fixture";
+
+test("contract date errors identify the field and passenger or hotel in Spanish", () => {
+  const data = exampleContract();
+  const cases = [
+    {
+      path: "departure.date",
+      label: "Fecha de salida",
+      data: { ...data, departure: { ...data.departure, date: "" } },
+    },
+    {
+      path: "return.date",
+      label: "Fecha de regreso",
+      data: { ...data, return: { ...data.return, date: "2027-02-29" } },
+    },
+    {
+      path: "hotels.0.checkIn",
+      label: "Hotel 1 · Ingreso al hotel",
+      data: { ...data, hotels: [{ ...data.hotels[0], checkIn: "" }] },
+    },
+    {
+      path: "hotels.0.checkOut",
+      label: "Hotel 1 · Egreso del hotel",
+      data: {
+        ...data,
+        hotels: [{ ...data.hotels[0], checkOut: "2027-13-01" }],
+      },
+    },
+    {
+      path: "passengers.1.birthDate",
+      label: "Pasajero 2 · Fecha de nacimiento",
+      data: {
+        ...data,
+        passengers: [
+          data.passengers[0],
+          { ...data.passengers[1], birthDate: "" },
+        ],
+      },
+    },
+  ];
+  for (const item of cases) {
+    for (const parsed of [
+      contractDraftSchema.safeParse(item.data),
+      contractInputSchema.safeParse({
+        requestId: randomUUID(),
+        previousId: null,
+        data: item.data,
+      }),
+    ]) {
+      assert.equal(parsed.success, false);
+      if (parsed.success) throw new Error("Expected an invalid date");
+      assert.deepEqual(contractValidationError(parsed.error), {
+        path: item.path,
+        message: `${item.label}: Completá una fecha válida.`,
+      });
+    }
+  }
+  for (const date of ["15/01/2027", "2027-01-32", "0027-01-15", "2200-01-15"]) {
+    const parsed = contractDraftSchema.safeParse({
+      ...data,
+      departure: { ...data.departure, date },
+    });
+    assert.equal(parsed.success, false);
+    if (parsed.success) throw new Error("Expected an invalid date");
+    assert.match(
+      contractValidationError(parsed.error).message,
+      /^Fecha de salida:/,
+    );
+  }
+  assert.equal(
+    contractDraftSchema.safeParse({
+      ...data,
+      departure: { ...data.departure, date: "2028-02-29" },
+      return: { ...data.return, date: "2028-03-05" },
+      hotels: [],
+    }).success,
+    true,
+  );
+});
 
 test("contracts calculate per-person/group amounts exactly and validate passengers, lodging, dates and deposits", () => {
   const data = exampleContract();

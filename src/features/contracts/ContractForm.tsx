@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { ZodError } from "zod";
 import { decimalDisplay, type Quote } from "@/features/receipts/domain";
 import { ApiError, apiRequest, authenticatedFetch } from "@/lib/api";
 import {
@@ -19,6 +20,7 @@ import {
   contractInputSchema,
   contractLabel,
   contractTotals,
+  contractValidationError,
   mealTypes,
   normalizeContractData,
   roomTypes,
@@ -139,6 +141,16 @@ export function ContractForm({
     previewUrl = useRef("");
   const rateController = useRef<AbortController | null>(null),
     rateSequence = useRef(0);
+  const formElement = useRef<HTMLFormElement>(null);
+  function showValidationError(error: ZodError) {
+    const validation = contractValidationError(error);
+    setError(validation.message);
+    formElement.current
+      ?.querySelector<HTMLInputElement>(
+        `[data-contract-date="${validation.path}"]`,
+      )
+      ?.focus();
+  }
   useEffect(() => {
     requestId.current = crypto.randomUUID();
     return () => {
@@ -215,7 +227,7 @@ export function ContractForm({
   async function preview() {
     const parsed = contractDraftSchema.safeParse(form);
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Revisá los datos.");
+      showValidationError(parsed.error);
       return;
     }
     const tab = window.open("about:blank", "_blank");
@@ -254,7 +266,7 @@ export function ContractForm({
       },
     );
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Revisá los datos.");
+      showValidationError(parsed.error);
       return;
     }
     inFlight.current = true;
@@ -305,7 +317,11 @@ export function ContractForm({
   }
   const blocked = busy || uncertain || previewBusy;
   return (
-    <form onSubmit={submit} className="surface-card overflow-hidden">
+    <form
+      ref={formElement}
+      onSubmit={submit}
+      className="surface-card overflow-hidden"
+    >
       <div className="border-b border-line p-5 sm:p-6">
         <h2 className="text-xl font-black">
           {source
@@ -361,6 +377,7 @@ export function ContractForm({
                     <input
                       required
                       type="date"
+                      data-contract-date={`${key}.date`}
                       className="admin-input"
                       value={form[key].date}
                       onChange={(e) =>
@@ -453,6 +470,7 @@ export function ContractForm({
                   <input
                     required
                     type="date"
+                    data-contract-date={`hotels.${hi}.checkIn`}
                     className="admin-input"
                     value={h.checkIn}
                     onChange={(e) =>
@@ -464,6 +482,7 @@ export function ContractForm({
                   <input
                     required
                     type="date"
+                    data-contract-date={`hotels.${hi}.checkOut`}
                     className="admin-input"
                     value={h.checkOut}
                     min={h.checkIn || undefined}
@@ -785,6 +804,7 @@ export function ContractForm({
                   <input
                     required
                     type="date"
+                    data-contract-date={`passengers.${i}.birthDate`}
                     className="admin-input"
                     value={p.birthDate}
                     onChange={(e) =>
