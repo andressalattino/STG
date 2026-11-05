@@ -146,7 +146,7 @@ const accessToken = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: userId, e
   try {
     await page.goto(`${baseUrl}/admin/recibos`);
     await page.getByLabel("Correo electrónico").fill("qa@example.test");
-    await page.getByLabel("Contrasena").fill("not-a-real-password");
+    await page.getByLabel("Contraseña").fill("not-a-real-password");
     await page.getByRole("button", { name: "Entrar al panel" }).click();
     await page
       .getByRole("heading", { name: "Recibos de viaje", exact: true })
@@ -375,7 +375,7 @@ const accessToken = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: userId, e
     );
     await page.getByRole("link", { name: "Volver a administración" }).click();
     await page
-      .getByRole("heading", { name: "Gestion de viajes STG" })
+      .getByRole("heading", { name: "Panel de administración" })
       .waitFor();
     await page.goto(baseUrl);
     await page

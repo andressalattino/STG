@@ -7,7 +7,7 @@ import type { Comment } from "@/types";
 
 const key = "stg-comments";
 
-export function useComments() {
+export function useComments(enabled: boolean) {
   const [comments, setComments] = useState<Comment[]>(
     passengerComments.map((item, index) => ({
       ...item,
@@ -16,6 +16,7 @@ export function useComments() {
   );
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
+    if (!enabled) return;
     try {
       const stored = localStorage.getItem(key);
       if (stored) setComments(JSON.parse(stored));
@@ -23,10 +24,11 @@ export function useComments() {
       /* Keep the public initial content if this browser has no usable cache. */
     }
     setHydrated(true);
-  }, []);
+  }, [enabled]);
   const [error, setError] = useState("");
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!enabled || !isSupabaseConfigured) return;
+    setError("");
     let active = true;
     void fetchComments()
       .then((remote) => {
@@ -49,7 +51,7 @@ export function useComments() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [enabled]);
   useEffect(() => {
     if (!hydrated) return;
     try {

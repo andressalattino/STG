@@ -124,8 +124,8 @@ export async function hasAdminSession() {
     throw error;
   }
 }
-export async function fetchTripsFromSupabase() {
-  return apiRequest<Trip[]>("/api/content/trips");
+export async function fetchTripsFromSupabase(signal?: AbortSignal) {
+  return apiRequest<Trip[]>("/api/content/trips", { signal });
 }
 export async function saveTripToSupabase(trip: Trip) {
   const payload = {
@@ -147,8 +147,8 @@ export async function deleteTripFromSupabase(id: string) {
     method: "DELETE",
   });
 }
-export async function fetchPassengerPhotosFromSupabase() {
-  return apiRequest<PassengerPhoto[]>("/api/content/photos");
+export async function fetchPassengerPhotosFromSupabase(signal?: AbortSignal) {
+  return apiRequest<PassengerPhoto[]>("/api/content/photos", { signal });
 }
 export async function savePassengerPhotoToSupabase(photo: PassengerPhoto) {
   const payload = {

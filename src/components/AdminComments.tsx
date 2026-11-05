@@ -1,5 +1,6 @@
 import { Edit3, Save, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { FinanceHeader } from "@/features/finance/FinanceHeader";
 import { deleteComment, saveComment } from "../lib/supabase";
 import type { Comment } from "../types";
 
@@ -10,11 +11,13 @@ export function AdminComments({
   onChange,
   connected,
   syncError,
+  onLogout,
 }: {
   comments: Comment[];
   onChange: (items: Comment[]) => void;
   connected: boolean;
   syncError: string;
+  onLogout: () => void;
 }) {
   const [draft, setDraft] = useState<Comment>(blank);
   const [busy, setBusy] = useState(false);
@@ -83,16 +86,12 @@ export function AdminComments({
   }
 
   return (
-    <section
-      className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8"
-      aria-labelledby="comments-title"
-    >
-      <h2 id="comments-title" className="text-2xl font-black text-foreground">
-        Comentarios de pasajeros
-      </h2>
-      <p className="mt-2 text-sm text-muted">
-        Publica los testimonios recibidos por correo con permiso de sus autores.
-      </p>
+    <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <FinanceHeader
+        title="Comentarios de pasajeros"
+        description="Publicá los testimonios recibidos por correo con permiso de sus autores."
+        onLogout={onLogout}
+      />
       {(status || syncError) && (
         <p role="status" className="mt-3 text-sm text-muted">
           {status || syncError}

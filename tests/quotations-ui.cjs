@@ -107,7 +107,7 @@ const token = `${encode({ alg: "HS256", typ: "JWT" })}.${encode({ sub: user.id, 
     await page.goto(`${base}/admin/cotizaciones`);
     await page.getByLabel("Correo electrónico").fill(user.email);
     await page
-      .getByLabel("Contrasena", { exact: true })
+      .getByLabel("Contraseña", { exact: true })
       .fill("local-test-only");
     await page.getByRole("button", { name: "Entrar al panel" }).click();
     await page

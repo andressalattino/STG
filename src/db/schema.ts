@@ -16,6 +16,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type { ContractData } from "@/features/contracts/domain";
+import type { FlyerData } from "@/features/flyers/domain";
 import type { QuotationData } from "@/features/quotations/domain";
 import type { ReceiptPayment } from "@/features/receipts/domain";
 
@@ -60,6 +61,15 @@ export const admins = pgTable("app_admins", {
 });
 
 export const privateSchema = pgSchema("stg_private");
+export const flyers = privateSchema
+  .table("flyers", {
+    id: uuid("id").primaryKey(),
+    data: jsonb("data").$type<FlyerData>().notNull(),
+    createdBy: uuid("created_by").notNull(),
+    ...timestamps(),
+  })
+  .enableRLS();
+
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType: () => "bytea",
 });

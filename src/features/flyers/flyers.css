@@ -1,0 +1,313 @@
+.flyer-art {
+  --flyer-ink: #092e55;
+  --flyer-muted: #446580;
+  --flyer-line: #d6e4ed;
+  --flyer-sun: #ffc92c;
+  container-type: inline-size;
+  display: grid;
+  grid-template-rows: 15% 18.5% 16% 37.5% 13%;
+  aspect-ratio: 98.5 / 141.5;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--flyer-line);
+  border-radius: 0.5rem;
+  background: white;
+  color: var(--flyer-ink);
+  color-scheme: light;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.15;
+}
+
+.flyer-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4cqi;
+  padding: 0 4cqi;
+}
+
+.flyer-brand img {
+  width: 32cqi;
+  max-height: 90%;
+  height: auto;
+  object-fit: contain;
+}
+
+.flyer-brand p {
+  color: #006db2;
+  font-size: 2.4cqi;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.flyer-brand p::after {
+  display: block;
+  height: 1.25cqi;
+  margin-top: 1.5cqi;
+  border-radius: 10px;
+  background: var(--flyer-sun);
+  content: "";
+}
+
+.flyer-destination {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.4cqi;
+  overflow: hidden;
+  padding: 2cqi 4cqi;
+  background: linear-gradient(107deg, #092e55 0%, #006091 58%, #0c8db7 100%);
+  color: white;
+}
+
+.flyer-destination::before,
+.flyer-destination::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+}
+
+.flyer-destination::before {
+  top: -54%;
+  right: -6%;
+  width: 40%;
+  aspect-ratio: 1;
+  border: 1px solid rgb(192 232 247 / 28%);
+  border-radius: 50%;
+  background: rgb(178 224 242 / 10%);
+}
+
+.flyer-destination::after {
+  bottom: -57%;
+  left: -8%;
+  width: 121%;
+  height: 102%;
+  transform: rotate(-6deg);
+  border-top: 1.8cqi solid rgb(54 189 224 / 48%);
+  border-radius: 50%;
+}
+
+.flyer-destination p,
+.flyer-details dt,
+.flyer-contact p {
+  font-size: 2.32cqi;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.flyer-destination p {
+  color: #c9ebff;
+}
+
+.flyer-destination h3 {
+  font-size: 7.65cqi;
+  font-weight: 800;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.flyer-destination h3[data-size="medium"] {
+  font-size: 5.55cqi;
+}
+
+.flyer-destination h3[data-size="small"] {
+  font-size: 4.4cqi;
+}
+
+.flyer-destination span {
+  font-size: 2.48cqi;
+}
+
+.flyer-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 3.45cqi 4cqi;
+  border-bottom: 1px solid var(--flyer-line);
+  background: #f1f7fb;
+}
+
+.flyer-details div + div {
+  padding-left: 3.2cqi;
+  border-left: 1px solid var(--flyer-line);
+}
+
+.flyer-details dt {
+  color: var(--flyer-muted);
+}
+
+.flyer-details dd {
+  margin: 1.5cqi 2.2cqi 0 0;
+  font-size: 3.45cqi;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.flyer-details div + div dd {
+  margin-right: 0;
+}
+
+.flyer-hotels {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 4cqi;
+  min-height: 0;
+  padding: 2.8cqi 3.6cqi 2.2cqi;
+}
+
+.flyer-hotel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2cqi;
+  text-transform: uppercase;
+}
+
+.flyer-hotel-heading h4 {
+  font-size: 3cqi;
+  font-weight: 800;
+}
+
+.flyer-hotel-heading span {
+  color: var(--flyer-muted);
+  font-size: 2.1cqi;
+  font-weight: 700;
+}
+
+.flyer-hotels ol {
+  display: grid;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+.flyer-hotels li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2.2cqi;
+  border-top: 1px solid #e1ebf1;
+}
+
+.flyer-hotel-index {
+  display: grid;
+  width: 7.4cqi;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5f3fd;
+  color: #006db2;
+  font-size: 2.38cqi;
+  font-weight: 700;
+}
+
+.flyer-hotel-name {
+  font-size: 3.15cqi;
+  font-weight: 700;
+}
+
+.flyer-hotel-name[data-long] {
+  font-size: 2.55cqi;
+}
+
+.flyer-hotel-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 2cqi;
+  margin-top: 0.85cqi;
+  color: var(--flyer-muted);
+  font-size: 2.65cqi;
+  font-weight: 700;
+}
+
+.flyer-hotel-meta strong {
+  color: var(--flyer-ink);
+  white-space: nowrap;
+}
+
+.flyer-contact {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 1cqi;
+  padding: 0 4cqi;
+  border-top: 1cqi solid var(--flyer-sun);
+  background: #08294d;
+  color: white;
+}
+
+.flyer-contact p,
+.flyer-contact svg {
+  color: #ffda56;
+}
+
+.flyer-contact span {
+  display: flex;
+  align-items: center;
+  gap: 1.75cqi;
+  font-size: 3.12cqi;
+  font-weight: 700;
+}
+
+.flyer-contact span:last-child {
+  color: #d2eaf9;
+  font-size: 2.65cqi;
+}
+
+.flyer-contact svg {
+  width: 2.9cqi;
+  height: 2.9cqi;
+}
+
+.flyer-print-sheet {
+  display: none;
+}
+
+@page stg-flyers {
+  size: A4 portrait;
+  margin: 5mm;
+}
+
+@media print {
+  html:has(.flyer-print-sheet),
+  body:has(> .flyer-print-sheet) {
+    background: white;
+    color-scheme: light;
+  }
+
+  body:has(> .flyer-print-sheet) > :not(.flyer-print-sheet) {
+    display: none;
+  }
+
+  .flyer-print-sheet {
+    page: stg-flyers;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 3mm;
+    width: 200mm;
+    height: 286mm;
+    break-inside: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .flyer-print-sheet::before,
+  .flyer-print-sheet::after {
+    position: absolute;
+    content: "";
+  }
+
+  .flyer-print-sheet::before {
+    inset: 0 auto 0 50%;
+    border-left: 0.2mm dashed #a7b7c4;
+  }
+
+  .flyer-print-sheet::after {
+    inset: 50% 0 auto;
+    border-top: 0.2mm dashed #a7b7c4;
+  }
+}

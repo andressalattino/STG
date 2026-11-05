@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { DeleteConfirmation } from "./components/DeleteConfirmation";
@@ -52,6 +53,18 @@ function AdminModuleLoading() {
 const AdminPage = dynamic(
   () =>
     import("./components/admin/AdminPage").then((module) => module.AdminPage),
+  { loading: AdminModuleLoading },
+);
+const AdminLogin = dynamic(
+  () =>
+    import("./components/admin/AdminLogin").then((module) => module.AdminLogin),
+  { loading: AdminModuleLoading },
+);
+const AdminHome = dynamic(
+  () =>
+    import("./components/admin/AdminNavigation").then(
+      (module) => module.AdminHome,
+    ),
   { loading: AdminModuleLoading },
 );
 const AdminNavigation = dynamic(
@@ -101,6 +114,13 @@ const ContractsWorkspace = dynamic(
     ),
   { loading: AdminModuleLoading },
 );
+const FlyersWorkspace = dynamic(
+  () =>
+    import("./features/flyers/FlyersWorkspace").then(
+      (module) => module.FlyersWorkspace,
+    ),
+  { loading: AdminModuleLoading },
+);
 
 const blankTrip: Trip = {
   id: "",
@@ -137,7 +157,6 @@ function App() {
       setConfirmation({ message, resolve }),
     );
   }
-  const { comments, setComments, error: commentsError } = useComments();
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -148,8 +167,13 @@ function App() {
       : pathname === "/comunidad"
         ? "comunidad"
         : "inicio";
-  const showingReceipts = pathname === "/admin/recibos";
-  const showingEditor = pathname === "/admin";
+  const contentSection =
+    pathname === "/admin/viajes"
+      ? "viajes"
+      : pathname === "/admin/fotos"
+        ? "fotos"
+        : null;
+  const showingComments = pathname === "/admin/comentarios";
   const [hydrated, setHydrated] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -165,6 +189,15 @@ function App() {
     logout,
     checkSession,
   } = useAdminSession();
+  const loadTrips =
+    page !== "admin" || (isAdmin && contentSection === "viajes");
+  const loadPhotos =
+    page !== "admin" || (isAdmin && contentSection === "fotos");
+  const {
+    comments,
+    setComments,
+    error: commentsError,
+  } = useComments(page === "comunidad" || (isAdmin && showingComments));
   const hasSupabaseAdminSession = isAdmin;
   const sessionReady =
     sessionStatus === "authenticated" || sessionStatus === "anonymous";
@@ -179,6 +212,7 @@ function App() {
   const [isSavingTrip, setIsSavingTrip] = useState(false);
   const [isSavingPassengerPhoto, setIsSavingPassengerPhoto] = useState(false);
   const [isRefreshingData, setIsRefreshingData] = useState(false);
+  const contentRequest = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setTrips(getStoredTrips());
@@ -205,48 +239,57 @@ function App() {
       return;
     }
 
+    contentRequest.current?.abort();
+    const controller = new AbortController();
+    contentRequest.current = controller;
+    const { signal } = controller;
     setIsRefreshingData(true);
     setDataStatus("Sincronizando con Supabase...");
 
     try {
       const [remoteTrips, remotePassengerPhotos] = await Promise.all([
-        fetchTripsFromSupabase(),
-        fetchPassengerPhotosFromSupabase(),
+        loadTrips ? fetchTripsFromSupabase(signal) : null,
+        loadPhotos ? fetchPassengerPhotosFromSupabase(signal) : null,
       ]);
+      if (signal.aborted) return;
 
-      setTrips((current) => [
-        ...current.filter(
-          (item) =>
-            item.source !== "supabase" &&
-            !remoteTrips.some((row) => row.id === item.id),
-        ),
-        ...remoteTrips,
-      ]);
-      setPassengerPhotos((current) => [
-        ...current.filter(
-          (item) =>
-            item.source !== "supabase" &&
-            !remotePassengerPhotos.some((row) => row.id === item.id),
-        ),
-        ...remotePassengerPhotos,
-      ]);
+      if (remoteTrips)
+        setTrips((current) => [
+          ...current.filter(
+            (item) =>
+              item.source !== "supabase" &&
+              !remoteTrips.some((row) => row.id === item.id),
+          ),
+          ...remoteTrips,
+        ]);
+      if (remotePassengerPhotos)
+        setPassengerPhotos((current) => [
+          ...current.filter(
+            (item) =>
+              item.source !== "supabase" &&
+              !remotePassengerPhotos.some((row) => row.id === item.id),
+          ),
+          ...remotePassengerPhotos,
+        ]);
       setDataStatus("Datos sincronizados con Supabase.");
     } catch (error) {
+      if (signal.aborted) return;
       const message =
         error instanceof Error
           ? error.message
           : "No se pudo sincronizar Supabase.";
       setDataStatus(`Supabase pendiente: ${message}`);
     } finally {
-      setIsRefreshingData(false);
+      if (!signal.aborted) setIsRefreshingData(false);
     }
-  }, []);
+  }, [loadTrips, loadPhotos]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured || (!loadTrips && !loadPhotos)) return;
 
     void refreshSupabaseData();
-  }, [refreshSupabaseData]);
+    return () => contentRequest.current?.abort();
+  }, [loadTrips, loadPhotos, refreshSupabaseData]);
 
   const featuredTrips = useMemo(
     () => trips.filter((trip) => trip.featured).slice(0, 3),
@@ -268,8 +311,6 @@ function App() {
 
     try {
       await login(username.trim(), password);
-      setDataStatus("Administrador conectado con Supabase.");
-      void refreshSupabaseData();
       setLoginError("");
       form.reset();
     } catch (error) {
@@ -279,6 +320,12 @@ function App() {
           : "No se pudo iniciar sesion como administrador.";
       setLoginError(message);
     }
+  }
+
+  function adminLogout() {
+    void logout();
+    setEditingTrip(blankTrip);
+    setEditingPassengerPhoto(blankPassengerPhoto);
   }
 
   async function handleSubmitTrip(event: FormEvent<HTMLFormElement>) {
@@ -592,7 +639,12 @@ function App() {
       />
 
       <main>
-        {page === "admin" && isAdmin && <AdminNavigation />}
+        {page === "admin" && isAdmin && pathname !== "/admin" && (
+          <AdminNavigation />
+        )}
+        {pathname === "/admin" && isAdmin && (
+          <AdminHome onLogout={adminLogout} />
+        )}
         {page === "inicio" && (
           <HomePage
             trips={trips}
@@ -640,19 +692,16 @@ function App() {
             )}
           </section>
         )}
-        {page === "admin" && sessionReady && (showingEditor || !isAdmin) && (
+        {page === "admin" && sessionReady && !isAdmin && (
+          <AdminLogin onLogin={handleLogin} loginError={loginError} />
+        )}
+        {isAdmin && contentSection && (
           <AdminPage
+            section={contentSection}
             uploading={uploading}
-            isAdmin={isAdmin}
-            loginError={loginError}
             trips={trips}
             editingTrip={editingTrip}
-            onLogin={handleLogin}
-            onLogout={() => {
-              void logout();
-              setEditingTrip(blankTrip);
-              setEditingPassengerPhoto(blankPassengerPhoto);
-            }}
+            onLogout={adminLogout}
             onSubmitTrip={handleSubmitTrip}
             onUpdateTripField={updateTripField}
             onEditTrip={editTrip}
@@ -681,35 +730,35 @@ function App() {
             }
           />
         )}
-        {page === "admin" && showingReceipts && isAdmin && (
-          <ReceiptWorkspace
-            onLogout={() => {
-              void logout();
-            }}
+        {isAdmin && showingComments && (
+          <AdminComments
+            comments={comments}
+            onChange={setComments}
+            connected={hasSupabaseAdminSession}
+            syncError={commentsError}
+            onLogout={adminLogout}
           />
         )}
+        {isAdmin && pathname === "/admin/folletos" && (
+          <FlyersWorkspace onLogout={adminLogout} />
+        )}
+        {isAdmin && pathname === "/admin/recibos" && (
+          <ReceiptWorkspace onLogout={adminLogout} />
+        )}
         {isAdmin && pathname === "/admin/egresos" && (
-          <ExpensesWorkspace onLogout={() => void logout()} />
+          <ExpensesWorkspace onLogout={adminLogout} />
         )}
         {isAdmin && pathname === "/admin/cotizaciones" && (
-          <QuotationsWorkspace onLogout={() => void logout()} />
+          <QuotationsWorkspace onLogout={adminLogout} />
         )}
         {isAdmin && pathname === "/admin/contratos" && (
-          <ContractsWorkspace onLogout={() => void logout()} />
+          <ContractsWorkspace onLogout={adminLogout} />
         )}
         {isAdmin && pathname === "/admin/estadisticas" && (
-          <StatisticsDashboard onLogout={() => void logout()} />
+          <StatisticsDashboard onLogout={adminLogout} />
         )}
       </main>
 
-      {page === "admin" && showingEditor && isAdmin && (
-        <AdminComments
-          comments={comments}
-          onChange={setComments}
-          connected={hasSupabaseAdminSession}
-          syncError={commentsError}
-        />
-      )}
       <Footer onNavigate={goTo} />
       {confirmation && (
         <DeleteConfirmation

@@ -10,7 +10,8 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es-AR" suppressHydrationWarning>
-      <body>{children}</body>
+      {/* Browser extensions can add attributes to body before hydration. */}
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
